@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 install_requires = \
     [
         'cfscrape==1.9.0',
-        'requests[security]=2.8.14',
+        'requests=2.8.14',
         'signalr-client==0.0.7'
     ]
 

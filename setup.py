@@ -4,10 +4,11 @@ from setuptools import setup, find_packages
 
 install_requires = \
     [
-        #'cfscrape==1.9.0',
-        'signalr-client==0.0.7'
+        'cfscrape==1.9.0',
+        'signalr-client==0.0.7',
+        'requests[security]==2.18.4'
     ]
-# 'requests[security]==2.18.4'#,
+
 setup(
     name='bittrex_websocket',
     version='0.0.1',
@@ -31,6 +32,6 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.5'
     ]
 )

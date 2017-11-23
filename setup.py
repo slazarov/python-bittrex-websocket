@@ -17,7 +17,7 @@ setup(
     license='MIT',
     url='https://github.com/slazarov/python-bittrex-websocket',
     packages=find_packages(exclude=['tests*']),
-    install_requires=install_requires,
+    #install_requires=install_requires,
     description='The unofficial Python websocket client for the Bittrex Cryptocurrency Exchange',
     download_url='https://github.com/slazarov/python-bittrex-websocket.git',
     keywords=['bittrex', 'bittrex-websocket', 'orderbook', 'trade', 'bitcoin', 'ethereum', 'BTC', 'ETH', 'client',

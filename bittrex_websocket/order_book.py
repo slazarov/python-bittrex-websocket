@@ -4,12 +4,14 @@
 # bittrex_websocket/order_book.py
 # Stanislav Lazarov
 
-from websocket_client import BittrexSocket
-from threading import Thread
 import queue
-from requests import get
-from time import sleep, time
 from copy import deepcopy
+from threading import Thread
+from time import sleep, time
+
+from requests import get
+
+from bittrex_websocket.websocket_client import BittrexSocket
 
 
 class OrderBook(BittrexSocket):

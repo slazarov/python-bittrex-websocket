@@ -1,1 +1,1 @@
-from websocket_client import BittrexSocket
+from bittrex_websocket.websocket_client import BittrexSocket

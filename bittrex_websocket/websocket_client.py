@@ -7,10 +7,11 @@
 
 import sys
 from threading import Thread
-from time import sleep, time
+from time import sleep
+
+import cfscrape
 from requests import Session
 from signalr import Connection
-import cfscrape
 
 
 class BittrexSocket(object):

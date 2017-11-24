@@ -1,5 +1,6 @@
 # bittrex-websocket
 Python websocket for Bittrex
+Disclaimer: I am not associated with Bittrex. Use the library at your own risk, I don't bear any responsibility if you end up losing your money.
 
 ### Sample usage
 ```import bittrex_websocket

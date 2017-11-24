@@ -1,1 +1,2 @@
+from bittrex_websocket.order_book import OrderBook
 from bittrex_websocket.websocket_client import BittrexSocket

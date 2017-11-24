@@ -4,7 +4,6 @@
 # bittrex_websocket/websocket_client.py
 # Stanislav Lazarov
 
-import sys
 from threading import Thread
 from time import sleep
 
@@ -14,7 +13,13 @@ from signalr import Connection
 
 
 class BittrexSocket(object):
-    def __init__(self, tickers: [] = None, conn_type: str = 'normal'):
+    def __init__(self, tickers=None, conn_type='normal'):
+        """
+        :param tickers: a list of tickers, single tickers should also be supplied as a list
+        :type tickers: []
+        :param conn_type: 'normal' direct connection or 'cloudflare' workaround
+        :type conn_type: str
+        """
         if tickers is None:
             self.tickers = ['BTC-ETH']
         else:
@@ -25,21 +30,22 @@ class BittrexSocket(object):
         self.conn_type = conn_type
 
     def run(self):
+        self.on_open()
         thread = Thread(target=self._go)
         thread.daemon = True
         self.threads.append(thread)
         self.threads[0].start()
 
-    def stop(self):
-        # To-do: come up with better handling of websocket stop
-        for conn in self.conn_list:
-            conn['corehub'].client.off('updateExchangeState', self.ticker_data)
-            conn['connection'].close()
-        print('Bittrex websocket closed.')
-
     def _go(self):
         # Create socket connections
         self._start()
+
+    def stop(self):
+        # To-do: come up with better handling of websocket stop
+        for conn in self.conn_list:
+            conn['corehub'].client.off('updateExchangeState', self.on_message)
+            conn['connection'].close()
+        self.on_close()
 
     def _start(self):
         def get_chunks(l, n):
@@ -78,8 +84,8 @@ class BittrexSocket(object):
                 conn = Connection(url, connection)
         else:
             raise Exception('Connection type is invalid, set conn_type to \'normal\' or \'cloudflare\'')
-        conn.received += self.debug
-        conn.error += self.error
+        conn.received += self.on_debug
+        conn.error += self.on_error
         corehub = conn.register_hub('coreHub')
         conn_object = {'connection': conn, 'corehub': corehub}
         return conn_object
@@ -94,7 +100,7 @@ class BittrexSocket(object):
             conn.start()
             print('Ticker update connection established.')
             # Subscribe for changes in the order book
-            corehub.client.on('updateExchangeState', self.ticker_data)
+            corehub.client.on('updateExchangeState', self.on_message)
             cmds = self._get_subscribe_commands()
             for k, cmd in enumerate(cmds):
                 for i, ticker in enumerate(tickers):
@@ -108,35 +114,66 @@ class BittrexSocket(object):
             print('Failed to establish connection')
             return
 
-    # Error handler
-    def error(self, error):
-        print(error)
-        print('Quitting')
-        sys.exit(0)
+    def on_open(self):
+        # Called before initiating the websocket connection
+        # Use it when you want to add optional parameters
+        pass
 
-    # Debug information, shows all data
-    def debug(self, **kwargs):
+    def on_close(self):
+        # Called after closing the websocket connection
+        # Use it when you want to add any closing logic.
+        print('Bittrex websocket closed.')
+
+    def on_error(self, error):
+        # Error handler
+        print(error)
+        self.stop()
+
+    def on_debug(self, **kwargs):
+        # Debug information, shows all data
         print(kwargs)
 
-    # Ticker update event
-    def ticker_data(self, *args, **kwargs):
-        print(args[0])
+    def on_message(self, *args, **kwargs):
+        """
+        This is where you get the order flow stream.
+        Subscribed via 'updateExchangeState'
 
-    def market_data(self, *args, **kwargs):
-        pass
+        Access it from args[0]
+
+        Example output:
+        args = \
+            (
+                {
+                    'MarketName': 'BTC-ETH', 'Nounce': 101846,
+                    'Buys':
+                        [
+                            {'Type': 1, 'Rate': 0.05369548, 'Quantity': 0.0}
+                        ],
+                    'Sells':
+                        [
+                            {'Type': 2, 'Rate': 0.05373854, 'Quantity': 62.48260112}
+                        ],
+                    'Fills':
+                        [
+                            {'OrderType': 'BUY', 'Rate': 0.05373854, 'Quantity': 0.88839888,
+                             'TimeStamp': '2017-11-24T13:18:43.44'}
+                        ]
+                }
+            )
+        """
+        print(args[0])
 
 
 if __name__ == "__main__":
     class MyBittrexSocket(BittrexSocket):
-        def __init__(self, tickers: [] = None):
-            super(MyBittrexSocket, self).__init__(tickers=tickers)
+        def on_open(self):
             self.nounces = []
             self.msg_count = 0
 
-        def debug(self, **kwargs):
+        def on_debug(self, **kwargs):
             pass
 
-        def ticker_data(self, *args, **kwargs):
+        def on_message(self, *args, **kwargs):
             self.nounces.append(args[0])
             self.msg_count += 1
 

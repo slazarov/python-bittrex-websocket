@@ -15,7 +15,16 @@ from bittrex_websocket.websocket_client import BittrexSocket
 
 
 class OrderBook(BittrexSocket):
-    def __init__(self, tickers: [] = None, book_depth: int = 10, conn_type: str = 'normal'):
+    def __init__(self, tickers=None, book_depth=10, conn_type='normal'):
+        """
+
+        :param tickers: a list of tickers, single tickers should also be supplied as a list
+        :type tickers: []
+        :param book_depth: The depth of the order book
+        :type book_depth: int
+        :param conn_type: 'normal' direct connection or 'cloudflare' workaround
+        :type conn_type: str
+        """
         if tickers is None:
             self.tickers = ['BTC-ETH']
         else:
@@ -152,7 +161,7 @@ class OrderBook(BittrexSocket):
                             self.tick_queue.task_done()
 
     def _sync_order_book(self, order_data):
-        # Syncs the order book for the pair given the most recent data from the socket
+        # Syncs the order book for the pair, given the most recent data from the socket
         pair_name = order_data['MarketName']
         nounce_diff = order_data['Nounce'] - self.socket_order_books[pair_name]['Nounce']
         if nounce_diff == 1:
@@ -209,12 +218,12 @@ class OrderBook(BittrexSocket):
             raise NotImplementedError("Implement nounce resync!")
 
     # Debug information, shows all data
-    def debug(self, **kwargs):
+    def on_debug(self, **kwargs):
         # Orderbook snapshot:
         if 'R' in kwargs and type(kwargs['R']) is not bool:
             self.orderbook_events.put(kwargs['R'])
 
-    def ticker_data(self, *args, **kwargs):
+    def on_message(self, *args, **kwargs):
         self.tick_queue.put(args[0])
 
 

@@ -1,5 +1,5 @@
 # bittrex-websocket
-**Python3** websocket client ([SignalR](https://pypi.python.org/pypi/signalr-client/0.0.7)) for for getting live streaming data from [Bittrex Exchange](http://bittrex.com).
+**Python3** websocket client ([SignalR](https://pypi.python.org/pypi/signalr-client/0.0.7)) for getting live streaming data from [Bittrex Exchange](http://bittrex.com).
 
 ##### Disclaimer
 
@@ -30,7 +30,7 @@ I have been largely motivated by the following projects and people:
 
 * Daniel Paquin: [gdax-python](https://github.com/danpaquin/gdax-python) - a websocket client for GDAX. The project really helped me around using threads and structuring the code.
 
-* [David Parlevliet](https://github.com/dparlevliet) - saw his signalR code initially which included Bittrex specific commands. Saved me a lot of time in researching.
+* [David Parlevliet](https://github.com/dparlevliet) - saw his SignalR code initially which included Bittrex specific commands. Saved me a lot of time in researching.
 
 * Eric Somdahl: [python-bittrex](https://github.com/ericsomdahl/python-bittrex) - great python bindings for Bittrex. Highly recommend it, I use it in conjuction with the websocket client.
 

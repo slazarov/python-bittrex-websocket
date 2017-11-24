@@ -47,8 +47,9 @@ class OrderBook(BittrexSocket):
         # Start syncing with updates queue
         self._sync()
 
-    def _get_subscribe_commands(self):
-        return ['SubscribeToExchangeDeltas', 'queryExchangeState']
+    def on_open(self):
+        self.client_callbacks = ['updateExchangeState']
+        self.server_callbacks = ['SubscribeToExchangeDeltas', 'queryExchangeState']
 
     def _get_static_snapshots(self):
         order_queue = queue.Queue()

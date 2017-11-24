@@ -28,6 +28,9 @@ class BittrexSocket(object):
         self.conn_list = []
         self.threads = []
         self.conn_type = conn_type
+        self.url = 'http://socket-stage.bittrex.com/signalr'  # ''http://socket.bittrex.com/signalr'
+        self.client_callbacks = ['updateExchangeState']  # ['updateSummaryState']
+        self.server_callbacks = ['SubscribeToExchangeDeltas']
 
     def run(self):
         self.on_open()
@@ -73,15 +76,14 @@ class BittrexSocket(object):
         return
 
     def _create_connection(self):
-        url = 'http://socket.bittrex.com/signalr'
         # Sometimes Bittrex blocks the normal connection, so
         # we have to use a Cloudflare workaround
         if self.conn_type == 'normal':
             with Session() as connection:
-                conn = Connection(url, connection)
+                conn = Connection(self.url, connection)
         elif self.conn_type == 'cloudflare':
             with cfscrape.create_scraper() as connection:
-                conn = Connection(url, connection)
+                conn = Connection(self.url, connection)
         else:
             raise Exception('Connection type is invalid, set conn_type to \'normal\' or \'cloudflare\'')
         conn.received += self.on_debug
@@ -90,21 +92,18 @@ class BittrexSocket(object):
         conn_object = {'connection': conn, 'corehub': corehub}
         return conn_object
 
-    def _get_subscribe_commands(self):
-        return ['SubscribeToExchangeDeltas']
-
     def _subscribe(self, conn_object, tickers):
         conn, corehub = conn_object['connection'], conn_object['corehub']
         print('Establishing ticker update connection...')
         try:
             conn.start()
             print('Ticker update connection established.')
-            # Subscribe for changes in the order book
-            corehub.client.on('updateExchangeState', self.on_message)
-            cmds = self._get_subscribe_commands()
-            for k, cmd in enumerate(cmds):
+            # Subscribe
+            for cb in self.client_callbacks:
+                corehub.client.on(cb, self.on_message)
+            for k, cb in enumerate(self.server_callbacks):
                 for i, ticker in enumerate(tickers):
-                    corehub.server.invoke(cmd, ticker)
+                    corehub.server.invoke(cb, ticker)
                     if i == len(tickers) - 1:
                         sleep(5)
             # Close the connection if no message is received after timeout value.
@@ -167,6 +166,7 @@ class BittrexSocket(object):
 if __name__ == "__main__":
     class MyBittrexSocket(BittrexSocket):
         def on_open(self):
+            self.client_callbacks = ['updateExchangeState']
             self.nounces = []
             self.msg_count = 0
 

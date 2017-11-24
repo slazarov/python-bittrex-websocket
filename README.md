@@ -15,6 +15,10 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE
 
+# Testing needed
+It's a newly published library so please test it and report for any bugs.
+Much appreciated.
+
 # What can I use it for?
 You can use it for various purposes, some examples include:
 * maintaining live order book

@@ -41,16 +41,16 @@ class OrderBook(BittrexSocket):
         # Create socket connections
         self._start()
         # Get static snapshopts
-        self.api_order_books = self.get_static_snapshots()
+        self.api_order_books = self._get_static_snapshots()
         # Match and confirm order books
-        self.confirm_orderbook()
+        self._confirm_orderbook()
         # Start syncing with updates queue
-        self.sync()
+        self._sync()
 
     def _get_subscribe_commands(self):
         return ['SubscribeToExchangeDeltas', 'queryExchangeState']
 
-    def get_static_snapshots(self):
+    def _get_static_snapshots(self):
         order_queue = queue.Queue()
         num_threads = min(len(self.tickers), 10)
         order_books = {}
@@ -94,7 +94,7 @@ class OrderBook(BittrexSocket):
         print('Order book snapshot retrieved.')
         return order_books
 
-    def confirm_orderbook(self):
+    def _confirm_orderbook(self):
         def _get_queue(queue_object1):
             try:
                 event = queue_object1.get(False)
@@ -146,7 +146,7 @@ class OrderBook(BittrexSocket):
             else:
                 print('Order books\' name confirmed. Start syncing...')
 
-    def sync(self):
+    def _sync(self):
         while True:
             # Wait for the order books to be confirmed.
             if self.socket_order_books != {}:

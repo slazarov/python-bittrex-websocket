@@ -1,7 +1,7 @@
 # bittrex-websocket
 **Python3** websocket client ([SignalR](https://pypi.python.org/pypi/signalr-client/0.0.7)) for getting live streaming data from [Bittrex Exchange](http://bittrex.com).
 
-##### Disclaimer
+### Disclaimer
 
 *I am not associated with Bittrex. Use the library at your own risk, I don't bear any responsibility if you end up losing your money.*
 

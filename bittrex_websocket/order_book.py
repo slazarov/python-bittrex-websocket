@@ -17,8 +17,10 @@ from bittrex_websocket.websocket_client import BittrexSocket
 class OrderBook(BittrexSocket):
     def __init__(self, tickers: [] = None, book_depth: int = 10, conn_type: str = 'normal'):
         if tickers is None:
-            tickers = ['BTC-ETH']
-        super(OrderBook, self).__init__(tickers=tickers, conn_type=conn_type)
+            self.tickers = ['BTC-ETH']
+        else:
+            self.tickers = tickers
+        super(OrderBook, self).__init__(tickers=self.tickers, conn_type=conn_type)
         self.book_depth = book_depth
         self.tick_queue = queue.Queue()
         self.snapshot_ls = deepcopy(self.tickers)
@@ -217,10 +219,18 @@ class OrderBook(BittrexSocket):
 
 
 if __name__ == "__main__":
-    markets = ['BTC-ETH', 'ETH-1ST', 'BTC-1ST', 'BTC-NEO', 'ETH-NEO']
-    order_book = OrderBook(markets, conn_type='cloudflare')
+    tickers = ['BTC-ETH', 'ETH-1ST', 'BTC-1ST', 'BTC-NEO', 'ETH-NEO']
+    order_book = OrderBook(tickers, conn_type='cloudflare')
     order_book.run()
-    while 1:
-        sleep(10)
+
+    # Do some sample work
+    # Wait until the order book snapshots are identified and confirmed
+    while len(order_book.socket_order_books) < len(order_book.tickers):
+        sleep(5)
+    else:
+        for ticker in order_book.socket_order_books.values():
+            name = ticker['MarketName']
+            quantity = str(ticker['Buys'][0]['Quantity'])
+            price = str(ticker['Buys'][0]['Rate'])
+            print('Ticker: ' + name + ', Bids depth 0: ' + quantity + '@' + price)
         order_book.stop()
-        pass

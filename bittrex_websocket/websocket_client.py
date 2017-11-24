@@ -3,7 +3,6 @@
 
 # bittrex_websocket/websocket_client.py
 # Stanislav Lazarov
-# Install requests with: pip install requests[security] if you have any errors with SSL
 
 import sys
 from threading import Thread
@@ -32,13 +31,11 @@ class BittrexSocket(object):
         self.threads[0].start()
 
     def stop(self):
-        try:
-            for conn in self.conn_list:
-                conn['connection'].close()
-        except Exception:
-            # To-do: come up with better handling of websocket stop
-            pass
-        self.threads[0].join()
+        # To-do: come up with better handling of websocket stop
+        for conn in self.conn_list:
+            conn['corehub'].client.off('updateExchangeState', self.ticker_data)
+            conn['connection'].close()
+        print('Bittrex websocket closed.')
 
     def _go(self):
         # Create socket connections
@@ -129,13 +126,28 @@ class BittrexSocket(object):
         pass
 
 
-def main():
-    a = BittrexSocket(['BTC-ETH', 'ETH-1ST', 'BTC-1ST', 'BTC-NEO', 'ETH-NEO'])
-    a.run()
-    b = None
-    while 1 > 0:
-        sleep(60)
-
-
 if __name__ == "__main__":
-    main()
+    class MyBittrexSocket(BittrexSocket):
+        def __init__(self, tickers: [] = None):
+            super(MyBittrexSocket, self).__init__(tickers=tickers)
+            self.nounces = []
+            self.msg_count = 0
+
+        def debug(self, **kwargs):
+            pass
+
+        def ticker_data(self, *args, **kwargs):
+            self.nounces.append(args[0])
+            self.msg_count += 1
+
+
+    tickers = ['BTC-ETH', 'ETH-1ST', 'BTC-1ST', 'BTC-NEO', 'ETH-NEO']
+    ws = MyBittrexSocket(tickers)
+    ws.run()
+    while ws.msg_count < 20:
+        sleep(1)
+        continue
+    else:
+        for msg in ws.nounces:
+            print(msg)
+    ws.stop()

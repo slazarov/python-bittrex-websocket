@@ -51,6 +51,8 @@ To successfully install the package the following dependencies must be met:
 
 I have added a Dockerfile for а quick setup. Please check the docker folder.
 
+I am only adding this as a precaution, in most case you will not have to do anything at all as these are prepackaged with your python installation.
+
 # Installation
 ```python
 pip install git+https://github.com/slazarov/python-bittrex-websocket.git

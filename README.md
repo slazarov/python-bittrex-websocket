@@ -38,6 +38,9 @@ I have been largely motivated by the following projects and people:
 
 * Eric Somdahl: [python-bittrex](https://github.com/ericsomdahl/python-bittrex) - great python bindings for Bittrex. Highly recommend it, I use it in conjuction with the websocket client.
 
+# Currently in development
+More user friendly subscription to the exchange channels by wrapping the callbacks in methods.
+
 # To do
 * Test scripts
 * PyPi

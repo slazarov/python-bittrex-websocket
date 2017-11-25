@@ -24,10 +24,10 @@ class BittrexSocket(object):
             self.tickers = ['BTC-ETH']
         else:
             self.tickers = tickers
+        self.conn_type = conn_type
         self.timeout = 120000
         self.conn_list = []
         self.threads = []
-        self.conn_type = conn_type
         self.url = 'http://socket-stage.bittrex.com/signalr'  # ''http://socket.bittrex.com/signalr'
         self.client_callbacks = ['updateExchangeState']  # ['updateSummaryState']
         self.server_callbacks = ['SubscribeToExchangeDeltas']
@@ -46,7 +46,8 @@ class BittrexSocket(object):
     def stop(self):
         # To-do: come up with better handling of websocket stop
         for conn in self.conn_list:
-            conn['corehub'].client.off('updateExchangeState', self.on_message)
+            for cb in self.client_callbacks:
+                conn['corehub'].client.off(cb, self.on_message)
             conn['connection'].close()
         self.on_close()
 
@@ -136,29 +137,17 @@ class BittrexSocket(object):
         """
         This is where you get the order flow stream.
         Subscribed via 'updateExchangeState'
-
         Access it from args[0]
 
         Example output:
-        args = \
-            (
-                {
-                    'MarketName': 'BTC-ETH', 'Nounce': 101846,
-                    'Buys':
-                        [
-                            {'Type': 1, 'Rate': 0.05369548, 'Quantity': 0.0}
-                        ],
-                    'Sells':
-                        [
-                            {'Type': 2, 'Rate': 0.05373854, 'Quantity': 62.48260112}
-                        ],
-                    'Fills':
-                        [
-                            {'OrderType': 'BUY', 'Rate': 0.05373854, 'Quantity': 0.88839888,
-                             'TimeStamp': '2017-11-24T13:18:43.44'}
-                        ]
-                }
-            )
+            {
+                'MarketName': 'BTC-ETH',
+                'Nounce': 101846,
+                'Buys': [{'Type': 1, 'Rate': 0.05369548, 'Quantity': 0.0}],
+                'Sells': [{'Type': 2, 'Rate': 0.05373854, 'Quantity': 62.48260112}],
+                'Fills': [{'OrderType': 'BUY', 'Rate': 0.05373854, 'Quantity': 0.88839888,
+                           'TimeStamp': '2017-11-24T13:18:43.44'}]
+            }
         """
         print(args[0])
 

@@ -138,7 +138,6 @@ class BittrexSocket(object):
         This is where you get the order flow stream.
         Subscribed via 'updateExchangeState'
         Access it from args[0]
-
         Example output:
             {
                 'MarketName': 'BTC-ETH',

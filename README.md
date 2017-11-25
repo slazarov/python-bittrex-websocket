@@ -25,7 +25,7 @@ You can use it for various purposes, some examples include:
 * recording trade history
 * analysing order flow
 
-Use your imagination
+Use your imagination.
 
 # Motivation
 I am fairly new to Python and in my experience the best way to learn something is through actual practice. At the same time I am currently actively trading on Bittrex, hence the reason why I decided to build the Bittrex websocket client. I am publishing my code for a few reasons. Firstly, I want to make a contribution to the community, secondly the code needs lots of improvements and it would be great to work on it as a team, thirdly I haven't seen any other Python Bittrex websocket clients so far.

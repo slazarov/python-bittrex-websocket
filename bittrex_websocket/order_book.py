@@ -17,7 +17,6 @@ from bittrex_websocket.websocket_client import BittrexSocket
 class OrderBook(BittrexSocket):
     def __init__(self, tickers=None, book_depth=10, conn_type='normal'):
         """
-
         :param tickers: a list of tickers, single tickers should also be supplied as a list
         :type tickers: []
         :param book_depth: The depth of the order book

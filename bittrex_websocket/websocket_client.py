@@ -8,23 +8,19 @@ from threading import Thread
 from time import sleep
 
 import cfscrape
-from requests import Session
 from signalr import Connection
 
 
 class BittrexSocket(object):
-    def __init__(self, tickers=None, conn_type='normal'):
+    def __init__(self, tickers=None):
         """
         :param tickers: a list of tickers, single tickers should also be supplied as a list
         :type tickers: []
-        :param conn_type: 'normal' direct connection or 'cloudflare' workaround
-        :type conn_type: str
         """
         if tickers is None:
             self.tickers = ['BTC-ETH']
         else:
             self.tickers = tickers
-        self.conn_type = conn_type
         self.timeout = 120000
         self.conn_list = []
         self.threads = []
@@ -79,14 +75,8 @@ class BittrexSocket(object):
     def _create_connection(self):
         # Sometimes Bittrex blocks the normal connection, so
         # we have to use a Cloudflare workaround
-        if self.conn_type == 'normal':
-            with Session() as connection:
-                conn = Connection(self.url, connection)
-        elif self.conn_type == 'cloudflare':
-            with cfscrape.create_scraper() as connection:
-                conn = Connection(self.url, connection)
-        else:
-            raise Exception('Connection type is invalid, set conn_type to \'normal\' or \'cloudflare\'')
+        with cfscrape.create_scraper() as connection:
+            conn = Connection(self.url, connection)
         conn.received += self.on_debug
         conn.error += self.on_error
         corehub = conn.register_hub('coreHub')

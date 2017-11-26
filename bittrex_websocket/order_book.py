@@ -15,20 +15,18 @@ from bittrex_websocket.websocket_client import BittrexSocket
 
 
 class OrderBook(BittrexSocket):
-    def __init__(self, tickers=None, book_depth=10, conn_type='normal'):
+    def __init__(self, tickers=None, book_depth=10):
         """
         :param tickers: a list of tickers, single tickers should also be supplied as a list
         :type tickers: []
         :param book_depth: The depth of the order book
         :type book_depth: int
-        :param conn_type: 'normal' direct connection or 'cloudflare' workaround
-        :type conn_type: str
         """
         if tickers is None:
             self.tickers = ['BTC-ETH']
         else:
             self.tickers = tickers
-        super(OrderBook, self).__init__(tickers=self.tickers, conn_type=conn_type)
+        super(OrderBook, self).__init__(tickers=self.tickers)
         self.book_depth = book_depth
         self.tick_queue = queue.Queue()
         self.snapshot_ls = deepcopy(self.tickers)
@@ -229,7 +227,7 @@ class OrderBook(BittrexSocket):
 
 if __name__ == "__main__":
     tickers = ['BTC-ETH', 'ETH-1ST', 'BTC-1ST', 'BTC-NEO', 'ETH-NEO']
-    order_book = OrderBook(tickers, conn_type='cloudflare')
+    order_book = OrderBook(tickers)
     order_book.run()
 
     # Do some sample work

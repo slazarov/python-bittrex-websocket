@@ -4,7 +4,11 @@
 # bittrex_websocket/order_book.py
 # Stanislav Lazarov
 
-import queue
+try:
+    import queue as queue
+except ImportError:
+    import Queue as queue
+
 from copy import deepcopy
 from threading import Thread
 from time import sleep, time
@@ -86,7 +90,7 @@ class OrderBook(BittrexSocket):
                 q.task_done()
 
         print('Retrieving order book snapshot...')
-        for j in range(num_threads):
+        for j in list(range(num_threads)):
             worker = Thread(target=_retrieve, args=(order_queue, order_books))
             worker.setDaemon(True)
             worker.start()

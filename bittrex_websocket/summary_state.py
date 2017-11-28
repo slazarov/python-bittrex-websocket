@@ -23,6 +23,6 @@ if __name__ == "__main__":
     tickers = ['BTC-ETH', 'ETH-1ST', 'BTC-1ST', 'BTC-NEO', 'ETH-NEO']
     ws = MyBittrexSocket(tickers)
     ws.run()
-    for i in range(10):
+    for i in list(range(10)):
         sleep(1)
     ws.stop()

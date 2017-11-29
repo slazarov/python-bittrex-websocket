@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
     t = ['BTC-ETH', 'ETH-1ST', 'BTC-1ST', 'BTC-NEO', 'ETH-NEO']
     ws = MyBittrexSocket(t)
-    ws.run()
+    ws.run_old()
     while ws.msg_count < 20:
         sleep(1)
         continue

@@ -228,7 +228,7 @@ class OrderBook(BittrexSocket):
 if __name__ == "__main__":
     tickers = ['BTC-ETH', 'ETH-1ST', 'BTC-1ST', 'BTC-NEO', 'ETH-NEO']
     order_book = OrderBook(tickers)
-    order_book.run()
+    order_book.run_old()
 
     # Do some sample work
     # Wait until the order book snapshots are identified and confirmed

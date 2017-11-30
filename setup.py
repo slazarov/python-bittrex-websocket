@@ -6,12 +6,13 @@ install_requires = \
     [
         'cfscrape==1.9.0',
         'signalr-client==0.0.7',
-        'requests[security]==2.18.4'
+        'requests[security]==2.18.4',
+        'Events==0.3'
     ]
 
 setup(
     name='bittrex_websocket',
-    version='0.0.1',
+    version='0.1.0',
     author='Stanislav Lazarov',
     author_email='s.a.lazarov@gmail.com',
     license='MIT',
@@ -29,6 +30,9 @@ setup(
         'Intended Audience :: Information Technology',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',

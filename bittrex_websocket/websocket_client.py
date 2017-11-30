@@ -165,8 +165,6 @@ class BittrexSocket(WebSocket):
         :param conn_event: Contains the connection object.
         :type conn_event: ConnectEvent
         """
-
-        # Create thread
         thread = Thread(target=self._init_connection, args=(conn_event.conn_obj,))
         self.threads.append(thread)
         self.conn_list.append(conn_event.conn_obj)

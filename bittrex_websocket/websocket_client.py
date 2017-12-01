@@ -207,7 +207,7 @@ class BittrexSocket(WebSocket):
         """
         for conn in self.conn_list_new.values():
             conn.close()
-            while conn.conn_state:
+            while conn.state:
                 sleep(0.5)
         logging.debug('The websocket client instance has been successfully closed.')
         return True
@@ -215,7 +215,7 @@ class BittrexSocket(WebSocket):
     @staticmethod
     def _handle_subscribe(sub_event: SubscribeEvent):
         conn, server_callback, tickers = sub_event.conn_object, sub_event.server_callback, sub_event.tickers
-        while conn.conn_state is False:
+        while conn.state is False:
             sleep(0.2)
         else:
             try:
@@ -245,7 +245,7 @@ class BittrexSocket(WebSocket):
         conn, ticker = snapshot_event.conn_object, snapshot_event.ticker
         method = 'queryExchangeState'
         # Wait for the connection to start successfully and record 2 nounces of data
-        while conn.conn_state is False or self._get_ordernum_in_queue(ticker) < 2:
+        while conn.state is False or self._get_ordernum_in_queue(ticker) < 2:
             sleep(0.2)
         else:
             try:
@@ -265,11 +265,12 @@ class BittrexSocket(WebSocket):
             self.on_open()
             self._subscribe_first_run(tickers, sub_type)
 
-    def _subscribe_first_run(self, tickers, sub_type):
+    def _subscribe_first_run(self, tickers, sub_type, objects=None):
         for ticker in tickers:
             self.tickers.add(ticker)
             self.tickers.change_sub_state(ticker, sub_type, True)
-        objects = self._start2()
+        if objects is None:
+            objects = self._start2(tickers)
         for obj in objects:
             self.tickers.assign_conn_id(obj[0], sub_type, obj[1].id)
             self.control_queue.put(ConnectEvent(obj[1]))
@@ -299,7 +300,7 @@ class BittrexSocket(WebSocket):
             self.order_queue = queue.Queue()
             thread = Thread(target=self._start_order_queue)
             thread.daemon = True
-            self.threads.append(thread)
+            self.threads[thread.getName()] = thread
             thread.start()
 
     def _start_order_queue(self):
@@ -323,6 +324,27 @@ class BittrexSocket(WebSocket):
                         self.orderbook_callback.on_change(self.order_book[ticker])
                     self.order_queue.task_done()
 
+    def _is_running(self, tickers, sub_type):
+        # Check for existing connections
+        if not self.conn_list_new:
+            for conn in self.conn_list_new.values():
+                # Check if connection is alive and it's not flagged for disconnection
+                if conn.state is True and conn.close_me is False:
+                    # Check if the ticker quota has been reached
+                    free_slots = self.max_tickers_per_conn - conn.ticker_count
+                    # Use existing connection
+                    if free_slots > 0:
+                        tickers_chunk = tickers[0:free_slots]
+                        del tickers[0:free_slots]
+                        for ticker in tickers_chunk:
+                            self.tickers.add(ticker)
+                            self.tickers.change_sub_state(ticker, sub_type, True)
+                        self.tickers.assign_conn_id(tickers_chunk, sub_type, conn.id)
+                        self.control_queue.put(SubscribeEvent(tickers_chunk, conn, sub_type))
+            # The quota of the existing connections is filled -> create new connections
+            if len(tickers) > 0:
+                self._subscribe_first_run(tickers, sub_type)
+
     # ==============
     # Public Methods
     # ==============
@@ -335,6 +357,7 @@ class BittrexSocket(WebSocket):
         sub_type = Ticker.SUB_TYPE_ORDERBOOK
         self._is_order_queue()
         self._is_first_run(tickers, sub_type)
+        self._is_running(tickers, sub_type)
         self.tickers.set_book_depth(tickers, book_depth)
         self._get_snapshot(tickers)
 
@@ -377,15 +400,7 @@ class BittrexSocket(WebSocket):
     def disconnect(self):
         self.control_queue.put(DisconnectEvent())
 
-    def stop(self):
-        # To-do: come up with better handling of websocket stop
-        for conn in self.conn_list:
-            for cb in self.client_callbacks:
-                conn['corehub'].client.off(cb, self.on_message)
-            conn['connection'].close()
-        self.on_close()
-
-    def _start2(self):
+    def _start2(self, tickers):
         results = []
 
         def get_chunks(l, n):
@@ -393,7 +408,7 @@ class BittrexSocket(WebSocket):
             for i in range(0, len(l), n):
                 yield l[i:i + n]
 
-        ticker_gen = get_chunks(list(self.tickers.list.keys()), 20)
+        ticker_gen = get_chunks(list(tickers), 20)
         # Initiate a generator that splits the ticker list into chunks
         while True:
             try:

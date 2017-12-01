@@ -45,8 +45,9 @@ class Ticker(object):
         return d
 
     def add(self, ticker):
-        self.list[ticker] = self._create_structure()
-        self.list[ticker]['Name'] = ticker
+        if ticker not in self.list:
+            self.list[ticker] = self._create_structure()
+            self.list[ticker]['Name'] = ticker
 
     def remove(self, ticker):
         try:
@@ -116,16 +117,16 @@ class BittrexConnection(object):
         self.conn = conn
         self.corehub = corehub
         self.id = uuid4().hex
-        self.conn_state = False
+        self.state = False
         self.thread_name = None
         self.close_me = False
         self.ticker_count = 0
 
     def activate(self):
-        self.conn_state = True
+        self.state = True
 
     def deactivate(self):
-        self.conn_state = False
+        self.state = False
 
     def close(self):
         self.close_me = True
@@ -146,14 +147,18 @@ class Event(object):
 
 
 class ConnectEvent(Event):
-    def __init__(self, conn_obj):
+    """
+    Handles the event of creating a new connection.
+    """
+
+    def __init__(self, conn_object):
         self.type = 'CONNECT'
-        self.conn_obj = conn_obj
+        self.conn_obj = conn_object
 
 
 class DisconnectEvent(Event):
     """
-    Handles the event of disconnecting the connections and stopping the websocket instance
+    Handles the event of disconnecting the connections and stopping the websocket instance.
     """
 
     def __init__(self):

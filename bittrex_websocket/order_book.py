@@ -216,7 +216,7 @@ class OrderBook(BittrexSocket):
             raise NotImplementedError("Implement nounce resync!")
 
     # Debug information, shows all data
-    def on_debug(self, **kwargs):
+    def _on_debug(self, **kwargs):
         # Orderbook snapshot:
         if 'R' in kwargs and type(kwargs['R']) is not bool:
             self.orderbook_events.put(kwargs['R'])

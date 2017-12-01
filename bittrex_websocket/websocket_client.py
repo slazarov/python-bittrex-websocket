@@ -8,14 +8,16 @@ from __future__ import print_function
 
 import logging
 from abc import ABCMeta, abstractmethod
-from threading import Thread
+from threading import Thread, current_thread
 from time import sleep, time
 
 import cfscrape
 from events import Events
 from signalr import Connection
+from websocket import WebSocketConnectionClosedException
 
-from bittrex_websocket.auxiliary import Ticker, ConnectEvent, SubscribeEvent, UnsubscribeEvent, SnapshotEvent, \
+from bittrex_websocket.auxiliary import Ticker, ConnectEvent, DisconnectEvent, SubscribeEvent, UnsubscribeEvent, \
+    SnapshotEvent, \
     BittrexConnection
 
 logging.basicConfig(level=logging.DEBUG)
@@ -88,6 +90,13 @@ class WebSocket(object):
         """
         raise NotImplementedError("Should implement unsubscribe_to_ticker_update()")
 
+    @abstractmethod
+    def disconnect(self):
+        """
+        Disconnects the connections and stops the websocket instance
+        """
+        raise NotImplementedError("Should implement disconnect()")
+
 
 class BittrexSocket(WebSocket):
     def __init__(self):
@@ -96,7 +105,7 @@ class BittrexSocket(WebSocket):
         """
         self.tickers = Ticker()
         self.conn_list = []
-        self.threads = []
+        self.threads = {}
         self.url = 'http://socket-stage.bittrex.com/signalr'
         # Internal callbacks
         # --self.queryExchangeState = Events()
@@ -116,6 +125,7 @@ class BittrexSocket(WebSocket):
         # Test
         self.conn_list_new = {}
         self.order_book = {}
+        self.max_tickers_per_conn = 20
 
     # ===========================
     # Main Thread Private Methods
@@ -128,8 +138,8 @@ class BittrexSocket(WebSocket):
         """
         thread = Thread(target=self._start_socket_control_queue)
         thread.daemon = True
-        self.threads.append(thread)
-        self.threads[0].start()
+        self.threads[thread.getName()] = thread
+        thread.start()
 
     # ---------------------
     # Control Queue Methods
@@ -151,7 +161,9 @@ class BittrexSocket(WebSocket):
                     if control_event.type == 'CONNECT':
                         self._handle_connect(control_event)
                     if control_event.type == 'DISCONNECT':
-                        self._handle_disconnect(control_event)
+                        if self._handle_disconnect():
+                            self.on_close()
+                            break
                     if control_event.type == 'SUBSCRIBE':
                         self._handle_subscribe(control_event)
                     if control_event.type == 'UNSUBSCRIBE':
@@ -166,7 +178,8 @@ class BittrexSocket(WebSocket):
         :type conn_event: ConnectEvent
         """
         thread = Thread(target=self._init_connection, args=(conn_event.conn_obj,))
-        self.threads.append(thread)
+        self.threads[thread.getName()] = thread
+        conn_event.conn_obj.assign_thread(thread.getName())
         self.conn_list.append(conn_event.conn_obj)
         self.conn_list_new.update({conn_event.conn_obj.id: conn_event.conn_obj})
         thread.start()
@@ -186,15 +199,18 @@ class BittrexSocket(WebSocket):
             print(e)
             print('Failed to establish connection')
 
-    def _handle_disconnect(self, conn_event):
-        pass
-        # conn, server_callback, tickers = conn_event.conn_object, conn_event.server_callback, conn_event.tickers
-        # try:
-        #     for cb in server_callback:
-        #         for ticker in tickers:
-        #             pass
-        # except Exception as e:
-        #     print(e)
+    def _handle_disconnect(self):
+        """
+        Closing a connection from an external error results in an error.
+        We set a close_me flag so that next time when a message is received
+        from the thread that started the connection, a method will be called to close it.
+        """
+        for conn in self.conn_list_new.values():
+            conn.close()
+            while conn.conn_state:
+                sleep(0.5)
+        logging.debug('The websocket client instance has been successfully closed.')
+        return True
 
     @staticmethod
     def _handle_subscribe(sub_event: SubscribeEvent):
@@ -206,6 +222,7 @@ class BittrexSocket(WebSocket):
                 for cb in server_callback:
                     for ticker in tickers:
                         conn.corehub.server.invoke(cb, ticker)
+                        conn.increment_ticker()
             except Exception as e:
                 print(e)
                 print('Failed to subscribe')
@@ -245,6 +262,7 @@ class BittrexSocket(WebSocket):
     def _is_first_run(self, tickers, sub_type):
         # Check if the websocket is has been initiated already or if it's the first run
         if not self.tickers.list:
+            self.on_open()
             self._subscribe_first_run(tickers, sub_type)
 
     def _subscribe_first_run(self, tickers, sub_type):
@@ -352,6 +370,13 @@ class BittrexSocket(WebSocket):
         sub_type = Ticker.SUB_TYPE_TICKERUPDATE
         self._unsubscribe(tickers, sub_type)
 
+    # -------------
+    # Other Methods
+    # -------------
+
+    def disconnect(self):
+        self.control_queue.put(DisconnectEvent())
+
     def stop(self):
         # To-do: come up with better handling of websocket stop
         for conn in self.conn_list:
@@ -377,14 +402,13 @@ class BittrexSocket(WebSocket):
                 break
             if chunk_list is not None:
                 conn_obj = self._create_connection()
-                self.conn_list.append(conn_obj)
                 results.append([chunk_list, conn_obj])
         return results
 
     def _create_connection(self):
         with cfscrape.create_scraper() as connection:
             conn = Connection(self.url, connection)
-        conn.received += self.on_debug
+        conn.received += self._on_debug
         conn.error += self.on_error
         corehub = conn.register_hub('coreHub')
         return BittrexConnection(conn, corehub)
@@ -409,7 +433,17 @@ class BittrexSocket(WebSocket):
     # Private Channels Methods
     # ========================
 
+    def _on_debug(self, **kwargs):
+        """
+        Debug information, shows all data
+        Don't edit unless you know what you are doing.
+        Redirect full order book snapshots to on_message
+        """
+        self._is_close_me()
+        self._is_orderbook_snapshot(kwargs)
+
     def _on_tick_update(self, msg):
+        self._is_close_me()
         subs = self.tickers.list[msg['MarketName']]
         if subs['OrderBook']['Active'] is True:
             self.order_queue.put(msg)
@@ -424,6 +458,30 @@ class BittrexSocket(WebSocket):
                 d = dict(self._create_base_layout(msg),
                          **{'trades': msg['Fills']})
                 self.trades.on_change(d)
+
+    def _on_ticker_update(self, msg):
+        """
+        Invoking summary state updates for specific filter
+        doesn't work right now. So we will filter them manually.
+        """
+        self._is_close_me()
+        ticker_updates = {}
+        if 'Deltas' in msg:
+            for update in msg['Deltas']:
+                try:
+                    ticker = update['MarketName']
+                    subs = self.tickers.get_ticker_subs(ticker)
+                except KeyError:  # not in the subscription list
+                    continue
+                else:
+                    if subs['TickerUpdate']['Active']:
+                        ticker_updates[ticker] = update
+        if ticker_updates:
+            self.updateSummaryState.on_change(ticker_updates)
+
+    # -------------------------------------
+    # Private Channels Supplemental Methods
+    # -------------------------------------
 
     @staticmethod
     def _create_base_layout(msg):
@@ -499,24 +557,15 @@ class BittrexSocket(WebSocket):
         else:
             raise NotImplementedError("Implement nounce resync!")
 
-    def _on_ticker_update(self, msg):
-        """
-        Invoking summary state updates for specific filter
-        doesn't work right now. So we will filter them manually.
-        """
-        ticker_updates = {}
-        if 'Deltas' in msg:
-            for update in msg['Deltas']:
-                try:
-                    ticker = update['MarketName']
-                    subs = self.tickers.get_ticker_subs(ticker)
-                except KeyError:  # not in the subscription list
-                    continue
-                else:
-                    if subs['TickerUpdate']['Active']:
-                        ticker_updates[ticker] = update
-        if ticker_updates:
-            self.updateSummaryState.on_change(ticker_updates)
+    def _is_close_me(self):
+        thread_name = current_thread().getName()
+        conn_object = self.threads[thread_name]._args[0]
+        if conn_object.close_me:
+            try:
+                conn_object.conn.close()
+            except WebSocketConnectionClosedException:
+                pass
+            conn_object.deactivate()
 
     # ===============
     # Public Channels
@@ -535,18 +584,7 @@ class BittrexSocket(WebSocket):
     def on_error(self, error):
         # Error handler
         print(error)
-        self.stop()
-
-    def on_debug(self, **kwargs):
-        """
-        Debug information, shows all data
-        Don't edit unless you know what you are doing.
-        Redirect full order book snapshots to on_message
-        """
-        self._is_orderbook_snapshot(kwargs)
-
-    def on_trades(self, msg):
-        pass
+        self.disconnect()
 
     def on_message(self, msg):
         """
@@ -572,21 +610,25 @@ class BittrexSocket(WebSocket):
         print('Just updated the order book of ' + msg['MarketName'])
 
     def on_orderbook_update(self, msg):
-        print('Just received order book updates for ' + msg['MarketName'])
+        print('Just received order book updates for ' + msg['ticker'])
+
+    def on_trades(self, msg):
+        print('Just received trade update for ' + msg['ticker'])
 
     def on_ticker_update(self, msg):
-        print(msg)
+        for item in msg.values():
+            print('Just received ticker update for ' + item['MarketName'])
 
 
 if __name__ == "__main__":
     t = ['BTC-ETH', 'ETH-ZEC', 'BTC-ZEC', 'BTC-NEO', 'ETH-NEO']
     ws = BittrexSocket()
-    ws.subscribe_to_orderbook(t)
+    ws.subscribe_to_ticker_update(t)
     for i in range(100):
         # if ws.conn_list != []:
         #     if ws.conn_list[0]['corehub'].client._HubClient__handlers =={}:
         #         ws.conn_list[0]['corehub'].client.on('updateSummaryState', ws.on_message)
         sleep(1)
         if i == 15:
-            ws.unsubscribe_to_orderbook(t)
+            ws.unsubscribe_to_ticker_update(t)
         # ws.stop()

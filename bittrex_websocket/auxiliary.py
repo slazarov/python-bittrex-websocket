@@ -117,12 +117,24 @@ class BittrexConnection(object):
         self.corehub = corehub
         self.id = uuid4().hex
         self.conn_state = False
+        self.thread_name = None
+        self.close_me = False
+        self.ticker_count = 0
 
     def activate(self):
         self.conn_state = True
 
     def deactivate(self):
         self.conn_state = False
+
+    def close(self):
+        self.close_me = True
+
+    def assign_thread(self, thread_name):
+        self.thread_name = thread_name
+
+    def increment_ticker(self):
+        self.ticker_count += 1
 
 
 class Event(object):
@@ -137,6 +149,15 @@ class ConnectEvent(Event):
     def __init__(self, conn_obj):
         self.type = 'CONNECT'
         self.conn_obj = conn_obj
+
+
+class DisconnectEvent(Event):
+    """
+    Handles the event of disconnecting the connections and stopping the websocket instance
+    """
+
+    def __init__(self):
+        self.type = 'DISCONNECT'
 
 
 class SubscribeEvent(Event):
@@ -167,7 +188,7 @@ class UnsubscribeEvent(Event):
     """
 
     def __init__(self, ticker, tickers_list, sub_type):
-        self.type='UNSUBSCRIBE'
+        self.type = 'UNSUBSCRIBE'
         self.ticker = ticker
         self.sub_type = sub_type
         self.conn_id = self._get_conn_id(tickers_list)

@@ -7,7 +7,8 @@ install_requires = \
         'cfscrape==1.9.0',
         'signalr-client==0.0.7',
         'requests[security]==2.18.4',
-        'Events==0.3'
+        'Events==0.3',
+        'websocket-client==0.44.0'
     ]
 
 setup(

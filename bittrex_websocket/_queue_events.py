@@ -1,4 +1,4 @@
-from .auxiliary import Ticker, BittrexConnection, INVALID_SUB
+from .auxiliary import Ticker, BittrexConnection, INVALID_SUB, Common
 
 
 class Event(object):
@@ -38,10 +38,9 @@ class SubscribeEvent(Event):
 
     def __init__(self, tickers, conn_object, sub_type):
         self.type = 'SUBSCRIBE'
-        self.tickers = tickers
+        self.tickers = Common.find_ticker_type(tickers)
         self.conn_object = conn_object
-        # self.client_callback = None
-        self.server_callback = []
+        self.server_callback = None
         self.server_callback_no_payload = None
         self.sub_type = sub_type
         if sub_type not in Ticker().get_sub_types():
@@ -67,7 +66,8 @@ class SubscribeInternalEvent(Event):
         self.conn_object = conn_object
         self.sub_type = sub_type
 
-    def _find_ticker_type(self, tickers):
+    @staticmethod
+    def _find_ticker_type(tickers):
         ticker_type = type(tickers)
         if ticker_type is list:
             return tickers

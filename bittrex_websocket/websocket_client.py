@@ -104,7 +104,6 @@ class BittrexSocket(WebSocket):
 
         """
         self.tickers = Ticker()
-        self.conn_list = []
         self.threads = {}
         self.url = 'http://socket-stage.bittrex.com/signalr'
         # Internal callbacks
@@ -125,7 +124,7 @@ class BittrexSocket(WebSocket):
         # Test
         self.conn_list_new = {}
         self.order_book = {}
-        self.max_tickers_per_conn = 20
+        self.max_tickers_per_conn = 1
 
     # ===========================
     # Main Thread Private Methods
@@ -182,7 +181,6 @@ class BittrexSocket(WebSocket):
         thread = Thread(target=self._init_connection, args=(conn_event.conn_obj,))
         self.threads[thread.getName()] = thread
         conn_event.conn_obj.assign_thread(thread.getName())
-        self.conn_list.append(conn_event.conn_obj)
         self.conn_list_new.update({conn_event.conn_obj.id: conn_event.conn_obj})
         thread.start()
 
@@ -220,22 +218,27 @@ class BittrexSocket(WebSocket):
         server_callback_no_payload = sub_event.server_callback_no_payload
         tickers = sub_event.tickers
         sub_type = sub_event.sub_type
+        self.tickers.enable(tickers, sub_type, conn.id)
         while conn.state is False:
             sleep(0.2)
         else:
             try:
-                for cb in server_callback:
-                    for ticker in tickers:
-                        conn.corehub.server.invoke(cb, ticker)
-                        conn.increment_ticker()
+                if server_callback is not None:
+                    conn.set_callback_state(BittrexConnection.CALLBACK_EXCHANGE_DELTAS,
+                                            BittrexConnection.CALLBACK_STATE_ON)
+                    for cb in server_callback:
+                        for ticker in tickers:
+                            conn.corehub.server.invoke(cb, ticker)
+                            conn.increment_ticker()
                 if server_callback_no_payload is not None:
+                    conn.set_callback_state(BittrexConnection.CALLBACK_SUMMARY_DELTAS,
+                                            BittrexConnection.CALLBACK_STATE_ON)
                     for cb in server_callback_no_payload:
                         conn.corehub.server.invoke(cb)
                         conn.set_callback_state(cb, conn.CALLBACK_STATE_ON)
             except Exception as e:
                 print(e)
                 print('Failed to subscribe')
-        self.tickers.enable(tickers, sub_type, conn.id)
 
     def _handle_subscribe_internal(self, sub_event: SubscribeInternalEvent):
         tickers = sub_event.tickers
@@ -265,7 +268,8 @@ class BittrexSocket(WebSocket):
             sleep(0.2)
         else:
             try:
-                logging.debug('Requesting snapshot for {}.'.format(ticker))
+                logging.debug(
+                    '[Subscription][{}][{}]: Order book snapshot requested.'.format(Ticker.SUB_TYPE_ORDERBOOK, ticker))
                 conn.corehub.server.invoke(method, ticker)
                 self.tickers.set_snapshot_state(ticker, Ticker.SNAPSHOT_SENT)
             except Exception as e:
@@ -285,7 +289,7 @@ class BittrexSocket(WebSocket):
 
     def _subscribe_first_run(self, tickers, sub_type, objects=None):
         if objects is None:
-            objects = self._start2(tickers)
+            objects = self._create_connection(tickers)
         for obj in objects:
             self.control_queue.put(ConnectEvent(obj[1]))
             self.control_queue.put(SubscribeEvent(obj[0], obj[1], sub_type))
@@ -298,13 +302,14 @@ class BittrexSocket(WebSocket):
     def _get_snapshot(self, tickers):
         for ticker_name in tickers:
             ticker_object = self.tickers.list[ticker_name]
-            conn_id = ticker_object['OrderBook']['ConnectionID']
+            conn_id = self.tickers.get_sub_type_conn_id(ticker_name, Ticker.SUB_TYPE_ORDERBOOK)
             # Due to multithreading the connection might not be added to the connection list yet
             while True:
                 try:
                     conn = self.conn_list_new[conn_id]
                 except KeyError:
-                    continue
+                    sleep(0.5)
+                    conn_id = self.tickers.get_sub_type_conn_id(ticker_name, Ticker.SUB_TYPE_ORDERBOOK)
                 else:
                     break
             self.control_queue.put(SnapshotEvent(ticker_name, conn))
@@ -344,32 +349,60 @@ class BittrexSocket(WebSocket):
             # Check for already existing tickers and enable the subscription before opening a new connection
             common_tickers = set(tickers) & set(self.tickers.list)  # common
             new_tickers = set(tickers) - set(self.tickers.list)  # unique
-            for ticker in common_tickers:
+            for ticker in tickers:
                 if self.tickers.get_sub_state(ticker, sub_type) is Ticker.SUB_STATE_ON:
                     logging.debug('{} subscription is already enabled for {}. Ignoring...'.format(sub_type, ticker))
                 else:
                     # Assign most suitable connection
-                    conn = self.tickers.assign_conn(ticker, sub_type, self.conn_list_new)
-                    self.control_queue.put(SubscribeInternalEvent(ticker, conn, sub_type))
-                    pass
+                    events = self._assign_conn(ticker, sub_type)
+                    for event in events:
+                        self.control_queue.put(event)
+                    # [self.control_queue.put(event) for event in events]
 
-            # for conn in self.conn_list_new.values():
-            #     # Check if connection is alive and it's not flagged for disconnection
-            #     if conn.state is True and conn.close_me is False:
-            #         # Check if the ticker quota has been reached
-            #         free_slots = self.max_tickers_per_conn - conn.ticker_count
-            #         # Use existing connection
-            #         if free_slots > 0:
-            #             tickers_chunk = tickers[0:free_slots]
-            #             del tickers[0:free_slots]
-            #             for ticker in tickers_chunk:
-            #                 self.tickers.add(ticker)
-            #                 self.tickers.change_sub_state(ticker, sub_type, Ticker.SUB_STATE_ON)
-            #             self.tickers.assign_conn_id(tickers_chunk, sub_type, conn.id)
-            #             self.control_queue.put(SubscribeEvent(tickers_chunk, conn, sub_type))
-            # # The quota of the existing connections is filled -> create new connections
-            # if len(tickers) > 0:
-            #     pass
+    def _assign_conn(self, ticker, sub_type):
+        conns = self.tickers.sort_by_callbacks()
+        d = {}
+        if sub_type == Ticker.SUB_TYPE_TICKERUPDATE:
+            # Check for connection with enabled 'CALLBACK_SUMMARY_DELTAS'
+            for conn in conns.keys():
+                if BittrexConnection.CALLBACK_SUMMARY_DELTAS in conns[conn]:
+                    d.update({conns[conn]['Ticker count']: conn})
+            # and get the connection with the lowest number of tickers.
+            if d:
+                min_tickers = min(d.keys())
+                conn_id = d[min_tickers]
+                return [SubscribeInternalEvent(ticker, self.conn_list_new[conn_id], sub_type)]
+            # No connection found with 'CALLBACK_SUMMARY_DELTAS'.
+            # Get the connection with the lowest number of tickers.
+            else:
+                for conn in conns.keys():
+                    d.update({conns[conn]['Ticker count']: conn})
+                min_tickers = min(d.keys())
+                conn_id = d[min_tickers]
+                return [SubscribeEvent(ticker, self.conn_list_new[conn_id], sub_type)]
+        else:
+            # If 'EXCHANGE_DELTAS' is enabled for the ticker
+            # and the specific connection, we just need to find the
+            # connection and enable the subscription state in order
+            # to stop filtering the messages.
+            for conn in conns.keys():
+                if ticker in conns[conn][BittrexConnection.CALLBACK_EXCHANGE_DELTAS]:
+                    return [SubscribeInternalEvent(ticker, self.conn_list_new[conn], sub_type)]
+            # If there is no active subscription for the ticker,
+            # check if there is enough quota and add the subscription to
+            # an existing connection.
+            for conn in conns.keys():
+                d.update({conns[conn]['Ticker count']: conn})
+            min_tickers = min(d.keys())
+            if min_tickers < self.max_tickers_per_conn:
+                conn_id = d[min_tickers]
+                return SubscribeEvent(ticker, self.conn_list_new[conn_id], sub_type)
+            # The existing connections are in full capacity, create a new connection and subscribe.
+            else:
+                obj = self._create_connection([ticker])[0]
+                conn_event = ConnectEvent(obj[1])
+                sub_event = SubscribeEvent(ticker, obj[1], sub_type)
+                return [conn_event, sub_event]
 
     # ==============
     # Public Methods
@@ -429,7 +462,7 @@ class BittrexSocket(WebSocket):
     def disconnect(self):
         self.control_queue.put(DisconnectEvent())
 
-    def _start2(self, tickers):
+    def _create_connection(self, tickers):
         results = []
 
         def get_chunks(l, n):
@@ -445,11 +478,11 @@ class BittrexSocket(WebSocket):
             except StopIteration:
                 break
             if chunk_list is not None:
-                conn_obj = self._create_connection()
+                conn_obj = self._create_signalr_connection()
                 results.append([chunk_list, conn_obj])
         return results
 
-    def _create_connection(self):
+    def _create_signalr_connection(self):
         with cfscrape.create_scraper() as connection:
             conn = Connection(self.url, connection)
         conn.received += self._on_debug
@@ -471,7 +504,9 @@ class BittrexSocket(WebSocket):
                         self.order_book[ticker['Name']] = msg['R']
                         self.tickers.set_snapshot_state(ticker['Name'], Ticker.SNAPSHOT_RCVD)
                         break
-                print('snapshot_got')
+                logging.debug(
+                    '[Subscription][{}][{}]: Order book snapshot received.'.format(Ticker.SUB_TYPE_ORDERBOOK,
+                                                                                   msg['R']['MarketName']))
 
     # ========================
     # Private Channels Methods

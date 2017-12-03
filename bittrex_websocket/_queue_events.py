@@ -1,0 +1,121 @@
+from .auxiliary import Ticker, BittrexConnection, INVALID_SUB
+
+
+class Event(object):
+    """
+    Event is base class providing an interface
+    for all subsequent(inherited) events.
+    """
+
+
+class ConnectEvent(Event):
+    """
+    Handles the event of creating a new connection.
+    """
+
+    def __init__(self, conn_object):
+        self.type = 'CONNECT'
+        self.conn_obj = conn_object
+
+
+class DisconnectEvent(Event):
+    """
+    Handles the event of disconnecting the connections and stopping the websocket instance.
+    """
+
+    def __init__(self):
+        self.type = 'DISCONNECT'
+
+
+class SubscribeEvent(Event):
+    """
+    Handles the event of subscribing
+    specific ticker(s) to specific channels.
+
+    TO BE IMPLEMENTED:
+    Invoke 'SubscribeToExchangeDeltas' only if required.
+    """
+
+    def __init__(self, tickers, conn_object, sub_type):
+        self.type = 'SUBSCRIBE'
+        self.tickers = tickers
+        self.conn_object = conn_object
+        # self.client_callback = None
+        self.server_callback = []
+        self.server_callback_no_payload = None
+        self.sub_type = sub_type
+        if sub_type not in Ticker().get_sub_types():
+            raise SystemError(INVALID_SUB)
+        else:
+            if sub_type == Ticker.SUB_TYPE_TICKERUPDATE:
+                self.server_callback_no_payload = [BittrexConnection.CALLBACK_SUMMARY_DELTAS]
+            else:
+                self.server_callback = [BittrexConnection.CALLBACK_EXCHANGE_DELTAS]
+
+
+class SubscribeInternalEvent(Event):
+    """
+    If the ticker is already in the tickers list and it shares a subscription
+    callback for the new subscription request, then we don't have to invoke
+    a request to Bittrex but only enable the subscription state internally,
+    because the messages are received but are filtered.
+    """
+
+    def __init__(self, tickers, conn_object, sub_type):
+        self.type = 'SUBSCRIBE_INTERNAL'
+        self.tickers = self._find_ticker_type(tickers)
+        self.conn_object = conn_object
+        self.sub_type = sub_type
+
+    def _find_ticker_type(self, tickers):
+        ticker_type = type(tickers)
+        if ticker_type is list:
+            return tickers
+        elif ticker_type is str:
+            tickers = [tickers]
+            return tickers
+
+
+class UnsubscribeEvent(Event):
+    """
+    There is no direct method to revoke a subscription apart from:
+    1.) Closing the connection
+    2.) Suppressing the messages
+    """
+
+    def __init__(self, ticker, tickers_list, sub_type):
+        self.type = 'UNSUBSCRIBE'
+        self.ticker = ticker
+        self.sub_type = sub_type
+        self.conn_id = self._get_conn_id(tickers_list)
+
+    """
+    In the future I plan to use the connection
+    object and revoke the callback instead of suppressing it. 
+    Leaving it for now.
+
+    def __init__(self, ticker, tickers_list, conn_list, sub_type):
+        self.type = 'SUBSCRIBE'
+        self.ticker = ticker
+        self.sub_type = sub_type
+        self.conn_object = self._get_conn_object(tickers_list, conn_list)
+    """
+
+    def _get_conn_id(self, tickers_list):
+        conn_id = tickers_list.list[self.ticker][self.sub_type]['ConnectionID']
+        return conn_id
+
+    def _get_conn_object(self, tickers_list: Ticker, conn_list):
+        conn_id = tickers_list.list[self.ticker][self.sub_type]['ConnectionID']
+        return conn_list[conn_id]
+
+
+class SnapshotEvent(Event):
+    """
+    Handles the event of invoking a snapshot request for a specific ticker
+    """
+
+    def __init__(self, ticker, conn_object):
+        self.type = 'SNAPSHOT'
+        self.ticker = ticker
+        self.conn_object = conn_object

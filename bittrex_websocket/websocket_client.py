@@ -16,9 +16,9 @@ from events import Events
 from signalr import Connection
 from websocket import WebSocketConnectionClosedException
 
-from bittrex_websocket.auxiliary import Ticker, ConnectEvent, DisconnectEvent, SubscribeEvent, UnsubscribeEvent, \
-    SnapshotEvent, \
-    BittrexConnection
+from bittrex_websocket.auxiliary import Ticker, BittrexConnection
+from ._queue_events import SubscribeInternalEvent, ConnectEvent, DisconnectEvent, SubscribeEvent, UnsubscribeEvent, \
+    SnapshotEvent
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -160,15 +160,17 @@ class BittrexSocket(WebSocket):
                 if control_event is not None:
                     if control_event.type == 'CONNECT':
                         self._handle_connect(control_event)
-                    if control_event.type == 'DISCONNECT':
+                    elif control_event.type == 'DISCONNECT':
                         if self._handle_disconnect():
                             self.on_close()
                             break
-                    if control_event.type == 'SUBSCRIBE':
+                    elif control_event.type == 'SUBSCRIBE':
                         self._handle_subscribe(control_event)
-                    if control_event.type == 'UNSUBSCRIBE':
+                    elif control_event.type == 'SUBSCRIBE_INTERNAL':
+                        self._handle_subscribe_internal(control_event)
+                    elif control_event.type == 'UNSUBSCRIBE':
                         self._handle_unsubscribe(control_event)
-                    if control_event.type == 'SNAPSHOT':
+                    elif control_event.type == 'SNAPSHOT':
                         self._handle_get_snapshot(control_event)
 
     def _handle_connect(self, conn_event: ConnectEvent):
@@ -212,9 +214,12 @@ class BittrexSocket(WebSocket):
         logging.debug('The websocket client instance has been successfully closed.')
         return True
 
-    @staticmethod
-    def _handle_subscribe(sub_event: SubscribeEvent):
-        conn, server_callback, tickers = sub_event.conn_object, sub_event.server_callback, sub_event.tickers
+    def _handle_subscribe(self, sub_event: SubscribeEvent):
+        conn = sub_event.conn_object
+        server_callback = sub_event.server_callback
+        server_callback_no_payload = sub_event.server_callback_no_payload
+        tickers = sub_event.tickers
+        sub_type = sub_event.sub_type
         while conn.state is False:
             sleep(0.2)
         else:
@@ -223,14 +228,25 @@ class BittrexSocket(WebSocket):
                     for ticker in tickers:
                         conn.corehub.server.invoke(cb, ticker)
                         conn.increment_ticker()
+                if server_callback_no_payload is not None:
+                    for cb in server_callback_no_payload:
+                        conn.corehub.server.invoke(cb)
+                        conn.set_callback_state(cb, conn.CALLBACK_STATE_ON)
             except Exception as e:
                 print(e)
                 print('Failed to subscribe')
+        self.tickers.enable(tickers, sub_type, conn.id)
+
+    def _handle_subscribe_internal(self, sub_event: SubscribeInternalEvent):
+        tickers = sub_event.tickers
+        conn = sub_event.conn_object
+        sub_type = sub_event.sub_type
+        self.tickers.enable(tickers, sub_type, conn.id)
 
     def _handle_unsubscribe(self, unsub_event: UnsubscribeEvent):
         ticker, sub_type, conn_id = unsub_event.ticker, unsub_event.sub_type, unsub_event.conn_id
         logging.debug('Unsubscribing {} for {}.'.format(sub_type, ticker))
-        self.tickers.change_sub_state(ticker, sub_type, Ticker.SUB_STATE_OFF)
+        self.tickers._change_sub_state(ticker, sub_type, Ticker.SUB_STATE_OFF)
         self.tickers.remove_conn_id(ticker, sub_type)
 
     def _get_ordernum_in_queue(self, ticker):
@@ -264,15 +280,13 @@ class BittrexSocket(WebSocket):
         if not self.tickers.list:
             self.on_open()
             self._subscribe_first_run(tickers, sub_type)
+        else:
+            return False
 
     def _subscribe_first_run(self, tickers, sub_type, objects=None):
-        for ticker in tickers:
-            self.tickers.add(ticker)
-            self.tickers.change_sub_state(ticker, sub_type, True)
         if objects is None:
             objects = self._start2(tickers)
         for obj in objects:
-            self.tickers.assign_conn_id(obj[0], sub_type, obj[1].id)
             self.control_queue.put(ConnectEvent(obj[1]))
             self.control_queue.put(SubscribeEvent(obj[0], obj[1], sub_type))
 
@@ -326,24 +340,36 @@ class BittrexSocket(WebSocket):
 
     def _is_running(self, tickers, sub_type):
         # Check for existing connections
-        if not self.conn_list_new:
-            for conn in self.conn_list_new.values():
-                # Check if connection is alive and it's not flagged for disconnection
-                if conn.state is True and conn.close_me is False:
-                    # Check if the ticker quota has been reached
-                    free_slots = self.max_tickers_per_conn - conn.ticker_count
-                    # Use existing connection
-                    if free_slots > 0:
-                        tickers_chunk = tickers[0:free_slots]
-                        del tickers[0:free_slots]
-                        for ticker in tickers_chunk:
-                            self.tickers.add(ticker)
-                            self.tickers.change_sub_state(ticker, sub_type, True)
-                        self.tickers.assign_conn_id(tickers_chunk, sub_type, conn.id)
-                        self.control_queue.put(SubscribeEvent(tickers_chunk, conn, sub_type))
-            # The quota of the existing connections is filled -> create new connections
-            if len(tickers) > 0:
-                self._subscribe_first_run(tickers, sub_type)
+        if self.conn_list_new:
+            # Check for already existing tickers and enable the subscription before opening a new connection
+            common_tickers = set(tickers) & set(self.tickers.list)  # common
+            new_tickers = set(tickers) - set(self.tickers.list)  # unique
+            for ticker in common_tickers:
+                if self.tickers.get_sub_state(ticker, sub_type) is Ticker.SUB_STATE_ON:
+                    logging.debug('{} subscription is already enabled for {}. Ignoring...'.format(sub_type, ticker))
+                else:
+                    # Assign most suitable connection
+                    conn = self.tickers.assign_conn(ticker, sub_type, self.conn_list_new)
+                    self.control_queue.put(SubscribeInternalEvent(ticker, conn, sub_type))
+                    pass
+
+            # for conn in self.conn_list_new.values():
+            #     # Check if connection is alive and it's not flagged for disconnection
+            #     if conn.state is True and conn.close_me is False:
+            #         # Check if the ticker quota has been reached
+            #         free_slots = self.max_tickers_per_conn - conn.ticker_count
+            #         # Use existing connection
+            #         if free_slots > 0:
+            #             tickers_chunk = tickers[0:free_slots]
+            #             del tickers[0:free_slots]
+            #             for ticker in tickers_chunk:
+            #                 self.tickers.add(ticker)
+            #                 self.tickers.change_sub_state(ticker, sub_type, Ticker.SUB_STATE_ON)
+            #             self.tickers.assign_conn_id(tickers_chunk, sub_type, conn.id)
+            #             self.control_queue.put(SubscribeEvent(tickers_chunk, conn, sub_type))
+            # # The quota of the existing connections is filled -> create new connections
+            # if len(tickers) > 0:
+            #     pass
 
     # ==============
     # Public Methods
@@ -356,22 +382,25 @@ class BittrexSocket(WebSocket):
     def subscribe_to_orderbook(self, tickers, book_depth=10):
         sub_type = Ticker.SUB_TYPE_ORDERBOOK
         self._is_order_queue()
-        self._is_first_run(tickers, sub_type)
-        self._is_running(tickers, sub_type)
+        if self._is_first_run(tickers, sub_type) is False:
+            self._is_running(tickers, sub_type)
         self.tickers.set_book_depth(tickers, book_depth)
         self._get_snapshot(tickers)
 
     def subscribe_to_orderbook_update(self, tickers):
         sub_type = Ticker.SUB_TYPE_ORDERBOOKUPDATE
-        self._is_first_run(tickers, sub_type)
+        if self._is_first_run(tickers, sub_type) is False:
+            self._is_running(tickers, sub_type)
 
     def subscribe_to_trades(self, tickers):
         sub_type = Ticker.SUB_TYPE_TRADES
-        self._is_first_run(tickers, sub_type)
+        if self._is_first_run(tickers, sub_type) is False:
+            self._is_running(tickers, sub_type)
 
     def subscribe_to_ticker_update(self, tickers):
         sub_type = Ticker.SUB_TYPE_TICKERUPDATE
-        self._is_first_run(tickers, sub_type)
+        if self._is_first_run(tickers, sub_type) is False:
+            self._is_running(tickers, sub_type)
 
     # -------------------
     # Unsubscribe Methods

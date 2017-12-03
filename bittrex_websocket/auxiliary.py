@@ -4,6 +4,7 @@
 # bittrex_websocket/auxiliary.py
 # Stanislav Lazarov
 
+import logging
 from uuid import uuid4
 
 INVALID_SUB = 'Subscription type is invalid or not implemented. ' \
@@ -25,7 +26,10 @@ class Ticker(object):
 
     def __init__(self):
         self.list = {}
-        self.sub_types = ['OrderBook', 'OrderBookUpdate', 'Trades', 'TickerUpdate', 'Name']
+        self.sub_types = [self.SUB_TYPE_ORDERBOOK,
+                          self.SUB_TYPE_ORDERBOOKUPDATE,
+                          self.SUB_TYPE_TRADES,
+                          self.SUB_TYPE_TICKERUPDATE]
 
     def _create_structure(self):
         d = \
@@ -35,16 +39,25 @@ class Ticker(object):
                 self.SUB_TYPE_ORDERBOOKUPDATE: self._set_default_subscription(),
                 self.SUB_TYPE_TRADES: self._set_default_subscription(),
                 self.SUB_TYPE_TICKERUPDATE: self._set_default_subscription(),
-                self.sub_types[4]: None
+                'Name': None
             }
         return d
 
-    @staticmethod
-    def _set_default_subscription():
-        d = {'Active': False, 'ConnectionID': None}
+    def _set_default_subscription(self):
+        d = {'Active': self.SUB_STATE_OFF, 'ConnectionID': None}
         return d
 
-    def add(self, ticker):
+    def enable(self, tickers, sub_type, conn_id):
+        if type(tickers) is not list:
+            raise TypeError('Tickers list must be in a list structure')
+        else:
+            for ticker in tickers:
+                self._add(ticker)
+                self._change_sub_state(ticker, sub_type, Ticker.SUB_STATE_ON)
+                self._assign_conn_id(ticker, sub_type, conn_id)
+                logging.debug('[Subscription] {} enabled for {}.'.format(sub_type, ticker))
+
+    def _add(self, ticker):
         if ticker not in self.list:
             self.list[ticker] = self._create_structure()
             self.list[ticker]['Name'] = ticker
@@ -55,7 +68,7 @@ class Ticker(object):
         except KeyError:
             raise KeyError('No such ticker found in the list.')
 
-    def change_sub_state(self, ticker, sub_type, sub_state):
+    def _change_sub_state(self, ticker, sub_type, sub_state):
         """
         Changes the state of the specific subscription for the given ticker.
 
@@ -66,16 +79,19 @@ class Ticker(object):
         :param sub_state: Subscription state; Active == True, Inactive == False
         :type sub_state: bool
         """
-        if sub_type not in ['OrderBook', 'OrderBookUpdate', 'Trades', 'TickerUpdate']:
+        if sub_type not in self.sub_types:
             raise SystemError(INVALID_SUB)
         if type(sub_state) is not bool:
             raise SystemError(INVALID_SUB_CHANGE)
         self.list[ticker][sub_type]['Active'] = sub_state
 
+    def get_sub_state(self, ticker, sub_type):
+        return self.list[ticker][sub_type]['Active']
+
     def get_ticker_subs(self, ticker):
         return self.list[ticker]
 
-    def assign_conn_id(self, tickers, sub_type, conn_id):
+    def _assign_conn_id(self, tickers, sub_type, conn_id):
         """
         Assigns a connection id to the given ticker(s)
 
@@ -86,8 +102,12 @@ class Ticker(object):
         :param conn_id: ID of the connection
         :type conn_id: str
         """
-        for ticker in tickers:
-            self.list[ticker][sub_type]['ConnectionID'] = conn_id
+        ticker_type = type(tickers)
+        if ticker_type is list:
+            for ticker in tickers:
+                self.list[ticker][sub_type]['ConnectionID'] = conn_id
+        elif ticker_type is str:
+            self.list[tickers][sub_type]['ConnectionID'] = conn_id
 
     def remove_conn_id(self, tickers, sub_type):
         if type(tickers) is not []:
@@ -111,8 +131,67 @@ class Ticker(object):
     def get_sub_types(self):
         return self.sub_types
 
+    def assign_conn(self, ticker, sub_type, conn_list):
+        conns = self._sort_by_callbacks()
+        if sub_type == self.SUB_TYPE_TICKERUPDATE:
+            pass
+        else:
+            # Since 'EXCHANGE_DELTAS' is enabled for the ticker
+            # and the specific connection, we just need to find the
+            # connection and enable the subscription state in order
+            # to stop filtering the messages.
+            for conn in conns.keys():
+                if ticker in conns[conn][BittrexConnection.CALLBACK_EXCHANGE_DELTAS]:
+                    return conn_list[conn]
+            pass
+
+        pass
+
+    def _sort_by_callbacks(self):
+        """
+        Returns a dictionary with the following structure:
+        {
+            'ConnectionID':
+                {
+                    'CallbackType1': set('tickers'),
+                    'CallbackType2': set('tickers'),
+                    'Ticker count': Unique tickers in the connection:int
+                }
+        }
+        """
+        conns = {}
+        for ticker in self.list.values():
+            for sub in ticker:
+                if type(ticker[sub]) is dict:
+                    if self.get_sub_state(ticker['Name'], sub) is self.SUB_STATE_ON:
+                        conn_id = ticker[sub]['ConnectionID']
+                        if sub is self.SUB_TYPE_TICKERUPDATE:
+                            callback = BittrexConnection.CALLBACK_SUMMARY_DELTAS
+                        else:
+                            callback = BittrexConnection.CALLBACK_EXCHANGE_DELTAS
+                        try:
+                            conns[conn_id][callback].add(ticker['Name'])
+                        except KeyError:
+                            # Create the set if it doesn't exist.
+                            struct = {conn_id: {callback: set()}}
+                            conns.update(struct)
+                            conns[conn_id][callback].add(ticker['Name'])
+
+        # Count unique tickers in a connection
+        for conn in conns.values():
+            unique_tickers = set()
+            for sub in conn.values():
+                unique_tickers.update(sub)
+            conn['Ticker count'] = len(unique_tickers)
+        return conns
+
 
 class BittrexConnection(object):
+    CALLBACK_EXCHANGE_DELTAS = 'SubscribeToExchangeDeltas'
+    CALLBACK_SUMMARY_DELTAS = 'SubscribeToSummaryDeltas'
+    CALLBACK_STATE_OFF = False
+    CALLBACK_STATE_ON = True
+
     def __init__(self, conn, corehub):
         self.conn = conn
         self.corehub = corehub
@@ -121,6 +200,7 @@ class BittrexConnection(object):
         self.thread_name = None
         self.close_me = False
         self.ticker_count = 0
+        self.callbacks = self._create_structure()
 
     def activate(self):
         self.state = True
@@ -137,13 +217,20 @@ class BittrexConnection(object):
     def increment_ticker(self):
         self.ticker_count += 1
 
+    def set_callback_state(self, callback, state):
+        self.callbacks[callback] = state
+
+    def _create_structure(self):
+        d = {self.CALLBACK_EXCHANGE_DELTAS: False,
+             self.CALLBACK_SUMMARY_DELTAS: False}
+        return d
+
 
 class Event(object):
     """
     Event is base class providing an interface
     for all subsequent(inherited) events.
     """
-    pass
 
 
 class ConnectEvent(Event):
@@ -169,20 +256,26 @@ class SubscribeEvent(Event):
     """
     Handles the event of subscribing
     specific ticker(s) to specific channels.
+
+    TO BE IMPLEMENTED:
+    Invoke 'SubscribeToExchangeDeltas' only if required.
     """
 
     def __init__(self, tickers, conn_object, sub_type):
         self.type = 'SUBSCRIBE'
         self.tickers = tickers
         self.conn_object = conn_object
-        self.client_callback = None
-        self.server_callback = None
+        # self.client_callback = None
+        self.server_callback = []
+        self.server_callback_no_payload = None
+        self.sub_type = sub_type
         if sub_type not in Ticker().get_sub_types():
             raise SystemError(INVALID_SUB)
         else:
-            self.server_callback = ['SubscribeToExchangeDeltas']
-            # Doesnt' work
-            # self.server_callback = ['SubscribeToSummaryDeltas']
+            if sub_type == Ticker.SUB_TYPE_TICKERUPDATE:
+                self.server_callback_no_payload = [BittrexConnection.CALLBACK_SUMMARY_DELTAS]
+            else:
+                self.server_callback = [BittrexConnection.CALLBACK_EXCHANGE_DELTAS]
 
 
 class UnsubscribeEvent(Event):

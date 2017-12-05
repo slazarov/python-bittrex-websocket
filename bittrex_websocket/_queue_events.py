@@ -109,7 +109,7 @@ class UnsubscribeEvent(Event):
         conn_id = tickers_list.list[self.ticker][self.sub_type]['ConnectionID']
         return conn_id
 
-    def _get_conn_object(self, tickers_list: Ticker, conn_list):
+    def _get_conn_object(self, tickers_list, conn_list):
         conn_id = tickers_list.list[self.ticker][self.sub_type]['ConnectionID']
         return conn_list[conn_id]
 

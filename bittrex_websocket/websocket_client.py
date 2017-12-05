@@ -9,12 +9,12 @@ from __future__ import print_function
 import logging
 from abc import ABCMeta, abstractmethod
 from threading import Thread, current_thread
-from time import sleep, time
 
 import cfscrape
 from events import Events
 from requests.exceptions import HTTPError, MissingSchema
 from signalr import Connection
+from time import sleep, time
 from websocket import WebSocketConnectionClosedException
 
 from bittrex_websocket.auxiliary import Ticker, BittrexConnection
@@ -173,7 +173,7 @@ class BittrexSocket(WebSocket):
                         self._handle_get_snapshot(control_event)
                     sleep(0.2)
 
-    def _handle_connect(self, conn_event: ConnectEvent):
+    def _handle_connect(self, conn_event):
         """
         Start a new Bittrex connection in a new thread
         :param conn_event: Contains the connection object.
@@ -185,11 +185,11 @@ class BittrexSocket(WebSocket):
         self.conn_list.update({conn_event.conn_obj.id: conn_event.conn_obj})
         thread.start()
 
-    def _init_connection(self, conn_obj: BittrexConnection):
-        print('Establishing Bittrex connection...')
+    def _init_connection(self, conn_obj):
         conn, corehub = conn_obj.conn, conn_obj.corehub
         for url in self.url:
             try:
+                logging.debug('Trying to establish connection to Bittrex through {}.'.format(url))
                 conn.url = url
                 conn.start()
                 conn_obj.activate()
@@ -198,6 +198,10 @@ class BittrexSocket(WebSocket):
                 corehub.client.on('updateExchangeState', self._on_tick_update)
                 corehub.client.on('updateSummaryState', self._on_ticker_update)
                 conn.wait(120000)
+                # When we purposely close the connection, the script will exit conn.wait()
+                # so we need to inform the script that it should not try to reconnect
+                if conn_obj.close_me is True:
+                    return
             except HTTPError:
                 logging.debug('Failed to establish connection through {}'.format(url))
             except MissingSchema:
@@ -232,16 +236,23 @@ class BittrexSocket(WebSocket):
         logging.debug(msg)
         return flag
 
-    def _handle_subscribe(self, sub_event: SubscribeEvent):
+    def _handle_subscribe(self, sub_event):
         conn = sub_event.conn_object
         server_callback = sub_event.server_callback
         server_callback_no_payload = sub_event.server_callback_no_payload
         tickers = sub_event.tickers
         sub_type = sub_event.sub_type
-        self.tickers.enable(tickers, sub_type, conn.id)
+        timeout = 0
         while conn.state is False:
             sleep(0.2)
+            timeout += 1
+            if timeout >= 100:
+                logging.debug(
+                    'Failed to subscribe [{}][{}] from connection {} after 20 seconds. The connection is probably down.'.format(
+                        sub_type, tickers, conn.id))
+                return
         else:
+            self.tickers.enable(tickers, sub_type, conn.id)
             try:
                 if server_callback is not None:
                     conn.set_callback_state(BittrexConnection.CALLBACK_EXCHANGE_DELTAS,
@@ -260,13 +271,13 @@ class BittrexSocket(WebSocket):
                 print(e)
                 print('Failed to subscribe')
 
-    def _handle_subscribe_internal(self, sub_event: SubscribeInternalEvent):
+    def _handle_subscribe_internal(self, sub_event):
         tickers = sub_event.tickers
         conn = sub_event.conn_object
         sub_type = sub_event.sub_type
         self.tickers.enable(tickers, sub_type, conn.id)
 
-    def _handle_unsubscribe(self, unsub_event: UnsubscribeEvent):
+    def _handle_unsubscribe(self, unsub_event):
         ticker, sub_type, conn_id = unsub_event.ticker, unsub_event.sub_type, unsub_event.conn_id
         self.tickers.disable(ticker, sub_type, conn_id)
         self._is_no_subs_active()
@@ -279,7 +290,7 @@ class BittrexSocket(WebSocket):
                 match += 1
         return match
 
-    def _handle_get_snapshot(self, snapshot_event: SnapshotEvent):
+    def _handle_get_snapshot(self, snapshot_event):
         conn, ticker = snapshot_event.conn_object, snapshot_event.ticker
         method = 'queryExchangeState'
         # Wait for the connection to start successfully and record 2 nounces of data
@@ -675,13 +686,18 @@ class BittrexSocket(WebSocket):
 
     def _is_close_me(self):
         thread_name = current_thread().getName()
-        conn_object = self.threads[thread_name]._args[0]
+        conn_object = self._return_conn_by_thread_name(thread_name)
         if conn_object.close_me:
             try:
                 conn_object.conn.close()
             except WebSocketConnectionClosedException:
                 pass
             conn_object.deactivate()
+
+    def _return_conn_by_thread_name(self, thread_name):
+        for conn in self.conn_list:
+            if self.conn_list[conn].thread_name == thread_name:
+                return self.conn_list[conn]
 
     # ===============
     # Public Channels

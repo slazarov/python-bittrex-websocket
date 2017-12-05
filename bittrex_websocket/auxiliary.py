@@ -152,34 +152,47 @@ class Ticker(object):
                 {
                     'CallbackType1': set('tickers'),
                     'CallbackType2': set('tickers'),
-                    'Ticker count': Unique tickers in the connection:int
+                    'Unique ticker count': Unique tickers in the connection:int,
+                    'SubscribeToSummaryDeltas count': ticker count per specific callback:int,
+                    'SubscribeToExchangeDeltas count': ticker count per specific callback
                 }
         }
         """
         conns = {}
+        cb_sum_delta = BittrexConnection.CALLBACK_SUMMARY_DELTAS
+        cb_exch_delta = BittrexConnection.CALLBACK_EXCHANGE_DELTAS
         for ticker in self.list.values():
-            for sub in ticker:
-                if type(ticker[sub]) is dict:
-                    if self.get_sub_state(ticker['Name'], sub) is self.SUB_STATE_ON:
-                        conn_id = ticker[sub]['ConnectionID']
-                        if sub is self.SUB_TYPE_TICKERUPDATE:
-                            callback = BittrexConnection.CALLBACK_SUMMARY_DELTAS
+            for cb in ticker:
+                if type(ticker[cb]) is dict:
+                    if self.get_sub_state(ticker['Name'], cb) is self.SUB_STATE_ON:
+                        conn_id = ticker[cb]['ConnectionID']
+                        if cb is self.SUB_TYPE_TICKERUPDATE:
+                            callback = cb_sum_delta
                         else:
-                            callback = BittrexConnection.CALLBACK_EXCHANGE_DELTAS
+                            callback = cb_exch_delta
                         try:
                             conns[conn_id][callback].add(ticker['Name'])
                         except KeyError:
                             # Create the set if it doesn't exist.
-                            struct = {conn_id: {callback: set()}}
-                            conns.update(struct)
+                            if conn_id not in conns:
+                                struct = {conn_id: {callback: set()}}
+                                conns.update(struct)
+                            else:
+                                struct = {callback: set()}
+                                conns[conn_id].update(struct)
                             conns[conn_id][callback].add(ticker['Name'])
 
-        # Count unique tickers in a connection
+        # Count unique and per callback tickers in a connection
         for conn in conns.values():
             unique_tickers = set()
-            for sub in conn.values():
-                unique_tickers.update(sub)
-            conn['Ticker count'] = len(unique_tickers)
+            for cb in conn.values():
+                unique_tickers.update(cb)
+            conn['Unique tickers count'] = len(unique_tickers)
+            for cb in [cb_exch_delta, cb_sum_delta]:
+                if cb in conn:
+                    conn['{} count'.format(cb)] = len(conn[cb])
+                else:
+                    conn['{} count'.format(cb)] = 0
         return conns
 
     def get_sub_type_conn_id(self, ticker, sub_type):

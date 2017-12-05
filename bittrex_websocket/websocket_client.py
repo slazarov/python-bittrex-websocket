@@ -13,6 +13,7 @@ from time import sleep, time
 
 import cfscrape
 from events import Events
+from requests import HTTPError
 from signalr import Connection
 from websocket import WebSocketConnectionClosedException
 
@@ -105,7 +106,7 @@ class BittrexSocket(WebSocket):
         """
         self.tickers = Ticker()
         self.threads = {}
-        self.url = 'http://socket-stage.bittrex.com/signalr'
+        self.url = 'https://socket.bittrex.com/signalr' #https://socket-stage.bittrex.com/signalr
         # Internal callbacks
         # --self.queryExchangeState = Events()
         # --self.queryExchangeState.on_change += self.on_message
@@ -171,6 +172,7 @@ class BittrexSocket(WebSocket):
                         self._handle_unsubscribe(control_event)
                     elif control_event.type == 'SNAPSHOT':
                         self._handle_get_snapshot(control_event)
+                    sleep(1)
 
     def _handle_connect(self, conn_event: ConnectEvent):
         """
@@ -195,8 +197,8 @@ class BittrexSocket(WebSocket):
             corehub.client.on('updateExchangeState', self._on_tick_update)
             corehub.client.on('updateSummaryState', self._on_ticker_update)
             conn.wait(120000)
-        except Exception as e:
-            print(e)
+        except HTTPError:
+            print(HTTPError)
             print('Failed to establish connection')
 
     def _handle_disconnect(self):
@@ -366,7 +368,7 @@ class BittrexSocket(WebSocket):
             # Check for connection with enabled 'CALLBACK_SUMMARY_DELTAS'
             for conn in conns.keys():
                 if BittrexConnection.CALLBACK_SUMMARY_DELTAS in conns[conn]:
-                    d.update({conns[conn]['Ticker count']: conn})
+                    d.update({conns[conn]['{} count'.format(BittrexConnection.CALLBACK_EXCHANGE_DELTAS)]: conn})
             # and get the connection with the lowest number of tickers.
             if d:
                 min_tickers = min(d.keys())
@@ -376,7 +378,7 @@ class BittrexSocket(WebSocket):
             # Get the connection with the lowest number of tickers.
             else:
                 for conn in conns.keys():
-                    d.update({conns[conn]['Ticker count']: conn})
+                    d.update({conns[conn]['{} count'.format(BittrexConnection.CALLBACK_EXCHANGE_DELTAS)]: conn})
                 min_tickers = min(d.keys())
                 conn_id = d[min_tickers]
                 return [SubscribeEvent(ticker, self.conn_list_new[conn_id], sub_type)]
@@ -386,8 +388,11 @@ class BittrexSocket(WebSocket):
             # connection and enable the subscription state in order
             # to stop filtering the messages.
             for conn in conns.keys():
-                if ticker in conns[conn][BittrexConnection.CALLBACK_EXCHANGE_DELTAS]:
-                    return [SubscribeInternalEvent(ticker, self.conn_list_new[conn], sub_type)]
+                try:
+                    if ticker in conns[conn][BittrexConnection.CALLBACK_EXCHANGE_DELTAS]:
+                        return [SubscribeInternalEvent(ticker, self.conn_list_new[conn], sub_type)]
+                except KeyError:
+                    break
             # If there is no active subscription for the ticker,
             # check if there is enough quota and add the subscription to
             # an existing connection.

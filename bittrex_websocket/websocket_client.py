@@ -13,7 +13,7 @@ from time import sleep, time
 
 import cfscrape
 from events import Events
-from requests import HTTPError
+from requests.exceptions import HTTPError, MissingSchema
 from signalr import Connection
 from websocket import WebSocketConnectionClosedException
 
@@ -106,10 +106,9 @@ class BittrexSocket(WebSocket):
         """
         self.tickers = Ticker()
         self.threads = {}
-        self.url = 'https://socket.bittrex.com/signalr' #https://socket-stage.bittrex.com/signalr
-        # Internal callbacks
-        # --self.queryExchangeState = Events()
-        # --self.queryExchangeState.on_change += self.on_message
+        self.url = ['https://socket-stage.bittrex.com/signalr',
+                    'https://socket.bittrex.com/signalr',
+                    'https://socket-beta.bittrex.com/signalr']
         self.updateSummaryState = Events()
         self.updateSummaryState.on_change += self.on_ticker_update
         self.orderbook_callback = Events()
@@ -123,7 +122,7 @@ class BittrexSocket(WebSocket):
         self.order_queue = None
         self._start_main_thread()
         # Test
-        self.conn_list_new = {}
+        self.conn_list = {}
         self.order_book = {}
         self.max_tickers_per_conn = 1
 
@@ -161,7 +160,7 @@ class BittrexSocket(WebSocket):
                     if control_event.type == 'CONNECT':
                         self._handle_connect(control_event)
                     elif control_event.type == 'DISCONNECT':
-                        if self._handle_disconnect():
+                        if self._handle_disconnect(control_event):
                             self.on_close()
                             break
                     elif control_event.type == 'SUBSCRIBE':
@@ -172,7 +171,7 @@ class BittrexSocket(WebSocket):
                         self._handle_unsubscribe(control_event)
                     elif control_event.type == 'SNAPSHOT':
                         self._handle_get_snapshot(control_event)
-                    sleep(1)
+                    sleep(0.2)
 
     def _handle_connect(self, conn_event: ConnectEvent):
         """
@@ -183,36 +182,55 @@ class BittrexSocket(WebSocket):
         thread = Thread(target=self._init_connection, args=(conn_event.conn_obj,))
         self.threads[thread.getName()] = thread
         conn_event.conn_obj.assign_thread(thread.getName())
-        self.conn_list_new.update({conn_event.conn_obj.id: conn_event.conn_obj})
+        self.conn_list.update({conn_event.conn_obj.id: conn_event.conn_obj})
         thread.start()
 
     def _init_connection(self, conn_obj: BittrexConnection):
         print('Establishing Bittrex connection...')
         conn, corehub = conn_obj.conn, conn_obj.corehub
-        try:
-            conn.start()
-            conn_obj.activate()
-            print('Connection to Bittrex established successfully.')
-            # Add handlers
-            corehub.client.on('updateExchangeState', self._on_tick_update)
-            corehub.client.on('updateSummaryState', self._on_ticker_update)
-            conn.wait(120000)
-        except HTTPError:
-            print(HTTPError)
-            print('Failed to establish connection')
+        for url in self.url:
+            try:
+                conn.url = url
+                conn.start()
+                conn_obj.activate()
+                logging.debug('Connection to Bittrex established successfully through {}.'.format(url))
+                # Add handlers
+                corehub.client.on('updateExchangeState', self._on_tick_update)
+                corehub.client.on('updateSummaryState', self._on_ticker_update)
+                conn.wait(120000)
+            except HTTPError:
+                logging.debug('Failed to establish connection through {}'.format(url))
+            except MissingSchema:
+                logging.debug('Invalid URL: {}'.format(url))
+        else:
+            logging.debug('Failed to establish connection to Bittrex through all supplied URLS. Closing the socket')
+            return
 
-    def _handle_disconnect(self):
+    def _handle_disconnect(self, disconn_event):
         """
         Closing a connection from an external error results in an error.
         We set a close_me flag so that next time when a message is received
         from the thread that started the connection, a method will be called to close it.
+
+        Returns True if all connections have to be closed.
+        Returns False if only specific has to be closed.
         """
-        for conn in self.conn_list_new.values():
+
+        # Find whether we are closing all connections or just one.
+        if disconn_event.conn_object is None:
+            conns = self.conn_list.values()
+            msg = 'The websocket client instance has been successfully closed.'
+            flag = True
+        else:
+            conns = disconn_event.conn_object
+            msg = 'Connection {} has been successfully closed.'.format(conns[0].id)
+            flag = False
+        for conn in conns:
             conn.close()
             while conn.state:
                 sleep(0.5)
-        logging.debug('The websocket client instance has been successfully closed.')
-        return True
+        logging.debug(msg)
+        return flag
 
     def _handle_subscribe(self, sub_event: SubscribeEvent):
         conn = sub_event.conn_object
@@ -250,9 +268,8 @@ class BittrexSocket(WebSocket):
 
     def _handle_unsubscribe(self, unsub_event: UnsubscribeEvent):
         ticker, sub_type, conn_id = unsub_event.ticker, unsub_event.sub_type, unsub_event.conn_id
-        logging.debug('Unsubscribing {} for {}.'.format(sub_type, ticker))
-        self.tickers._change_sub_state(ticker, sub_type, Ticker.SUB_STATE_OFF)
-        self.tickers.remove_conn_id(ticker, sub_type)
+        self.tickers.disable(ticker, sub_type, conn_id)
+        self._is_no_subs_active()
 
     def _get_ordernum_in_queue(self, ticker):
         # ADD BETTER ERROR HANDLING FOR THIS
@@ -308,7 +325,7 @@ class BittrexSocket(WebSocket):
             # Due to multithreading the connection might not be added to the connection list yet
             while True:
                 try:
-                    conn = self.conn_list_new[conn_id]
+                    conn = self.conn_list[conn_id]
                 except KeyError:
                     sleep(0.5)
                     conn_id = self.tickers.get_sub_type_conn_id(ticker_name, Ticker.SUB_TYPE_ORDERBOOK)
@@ -347,7 +364,7 @@ class BittrexSocket(WebSocket):
 
     def _is_running(self, tickers, sub_type):
         # Check for existing connections
-        if self.conn_list_new:
+        if self.conn_list:
             # Check for already existing tickers and enable the subscription before opening a new connection
             common_tickers = set(tickers) & set(self.tickers.list)  # common
             new_tickers = set(tickers) - set(self.tickers.list)  # unique
@@ -373,7 +390,7 @@ class BittrexSocket(WebSocket):
             if d:
                 min_tickers = min(d.keys())
                 conn_id = d[min_tickers]
-                return [SubscribeInternalEvent(ticker, self.conn_list_new[conn_id], sub_type)]
+                return [SubscribeInternalEvent(ticker, self.conn_list[conn_id], sub_type)]
             # No connection found with 'CALLBACK_SUMMARY_DELTAS'.
             # Get the connection with the lowest number of tickers.
             else:
@@ -381,7 +398,7 @@ class BittrexSocket(WebSocket):
                     d.update({conns[conn]['{} count'.format(BittrexConnection.CALLBACK_EXCHANGE_DELTAS)]: conn})
                 min_tickers = min(d.keys())
                 conn_id = d[min_tickers]
-                return [SubscribeEvent(ticker, self.conn_list_new[conn_id], sub_type)]
+                return [SubscribeEvent(ticker, self.conn_list[conn_id], sub_type)]
         else:
             # If 'EXCHANGE_DELTAS' is enabled for the ticker
             # and the specific connection, we just need to find the
@@ -390,7 +407,7 @@ class BittrexSocket(WebSocket):
             for conn in conns.keys():
                 try:
                     if ticker in conns[conn][BittrexConnection.CALLBACK_EXCHANGE_DELTAS]:
-                        return [SubscribeInternalEvent(ticker, self.conn_list_new[conn], sub_type)]
+                        return [SubscribeInternalEvent(ticker, self.conn_list[conn], sub_type)]
                 except KeyError:
                     break
             # If there is no active subscription for the ticker,
@@ -401,13 +418,28 @@ class BittrexSocket(WebSocket):
             min_tickers = min(d.keys())
             if min_tickers < self.max_tickers_per_conn:
                 conn_id = d[min_tickers]
-                return SubscribeEvent(ticker, self.conn_list_new[conn_id], sub_type)
+                return SubscribeEvent(ticker, self.conn_list[conn_id], sub_type)
             # The existing connections are in full capacity, create a new connection and subscribe.
             else:
                 obj = self._create_connection([ticker])[0]
                 conn_event = ConnectEvent(obj[1])
                 sub_event = SubscribeEvent(ticker, obj[1], sub_type)
                 return [conn_event, sub_event]
+
+    def _is_no_subs_active(self):
+        active_conns = self.tickers.sort_by_callbacks()
+        # Close the websocket if no active connections
+        if not active_conns:
+            self.disconnect()
+        else:
+            # Check for non-active connections and close ONLY them.
+            non_active = set(self.conn_list) - set(active_conns)
+            if non_active:
+                for conn in non_active:
+                    logging.debug('Connection {} has no active subscriptions. Closing it...'.format(conn))
+                    conn_object = self.conn_list[conn]
+                    disconnect_event = DisconnectEvent(conn_object)
+                    self.control_queue.put(disconnect_event)
 
     # ==============
     # Public Methods
@@ -489,7 +521,7 @@ class BittrexSocket(WebSocket):
 
     def _create_signalr_connection(self):
         with cfscrape.create_scraper() as connection:
-            conn = Connection(self.url, connection)
+            conn = Connection(None, connection)
         conn.received += self._on_debug
         conn.error += self.on_error
         corehub = conn.register_hub('coreHub')

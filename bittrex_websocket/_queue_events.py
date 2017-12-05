@@ -23,8 +23,12 @@ class DisconnectEvent(Event):
     Handles the event of disconnecting the connections and stopping the websocket instance.
     """
 
-    def __init__(self):
+    def __init__(self, conn_object=None):
         self.type = 'DISCONNECT'
+        if conn_object is not None:
+            self.conn_object = [conn_object]
+        else:
+            self.conn_object = conn_object
 
 
 class SubscribeEvent(Event):

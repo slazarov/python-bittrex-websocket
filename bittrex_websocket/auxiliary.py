@@ -56,6 +56,13 @@ class Ticker(object):
             self._assign_conn_id(ticker, sub_type, conn_id)
             logging.debug('[Subscription][{}][{}]: Enabled.'.format(sub_type, ticker))
 
+    def disable(self, tickers, sub_type, conn_id):
+        tickers_list = self._fix_type_error(tickers)
+        for ticker in tickers_list:
+            self._change_sub_state(ticker, sub_type, Ticker.SUB_STATE_OFF)
+            self._assign_conn_id(ticker, sub_type, None)
+            logging.debug('[Subscription][{}][{}]: Disabled.'.format(sub_type, ticker))
+
     def _add(self, ticker):
         if ticker not in self.list:
             self.list[ticker] = self._create_structure()

@@ -36,7 +36,10 @@ class Ticker(object):
         d = \
             {
                 self.SUB_TYPE_ORDERBOOK: dict(self._set_default_subscription(),
-                                              **{'SnapshotState': 0, 'OrderBookDepth': 10, 'NouncesRcvd': 0}),
+                                              **{'SnapshotState': 0,
+                                                 'OrderBookDepth': 10,
+                                                 'NouncesRcvd': 0,
+                                                 'InternalQueue': None}),
                 self.SUB_TYPE_ORDERBOOKUPDATE: self._set_default_subscription(),
                 self.SUB_TYPE_TRADES: self._set_default_subscription(),
                 self.SUB_TYPE_TICKERUPDATE: self._set_default_subscription(),
@@ -109,7 +112,7 @@ class Ticker(object):
         :param sub_type: The subscription type
         :type sub_type: str
         :param conn_id: ID of the connection
-        :type conn_id: str
+        :type conn_id: str or None
         """
         self.list[ticker][sub_type]['ConnectionID'] = conn_id
 
@@ -207,6 +210,9 @@ class Ticker(object):
             return self.list[ticker][sub_type]['ConnectionID']
         else:
             return False
+
+    def increment_nounces(self, ticker):
+        self.list[ticker][Ticker.SUB_TYPE_ORDERBOOK]['NouncesRcvd'] += 1
 
     @staticmethod
     def _fix_type_error(tickers):

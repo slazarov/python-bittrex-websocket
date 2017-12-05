@@ -378,11 +378,7 @@ class BittrexSocket(WebSocket):
                 if order_event is not None:
                     ticker = order_event['MarketName']
                     snapshot_state = self.tickers.list[ticker]['OrderBook']['SnapshotState']
-                    # Awaiting snapshot, put the order event back in the queue
-                    if snapshot_state in [Ticker.SNAPSHOT_OFF, Ticker.SNAPSHOT_SENT]:
-                        self.order_queue.put(order_event)
-                        self.tickers.list[ticker][Ticker.SUB_TYPE_ORDERBOOK]['NouncesRcvd'] += 1
-                    elif snapshot_state == Ticker.SNAPSHOT_RCVD:
+                    if snapshot_state == Ticker.SNAPSHOT_RCVD:
                         if self._sync_order_book(ticker, order_event):
                             self.tickers.set_snapshot_state(ticker, Ticker.SNAPSHOT_ON)
                     elif snapshot_state == Ticker.SNAPSHOT_ON:
@@ -484,7 +480,6 @@ class BittrexSocket(WebSocket):
         if self._is_first_run(tickers, sub_type) is False:
             self._is_running(tickers, sub_type)
         self.tickers.set_book_depth(tickers, book_depth)
-        # self._get_snapshot(tickers)
 
     def subscribe_to_orderbook_update(self, tickers):
         sub_type = Ticker.SUB_TYPE_ORDERBOOKUPDATE
@@ -574,6 +569,29 @@ class BittrexSocket(WebSocket):
                     '[Subscription][{}][{}]: Order book snapshot received.'.format(Ticker.SUB_TYPE_ORDERBOOK,
                                                                                    msg['R']['MarketName']))
 
+    def _init_backorder_queue(self, ticker, msg):
+        sub = self.tickers.list[ticker][Ticker.SUB_TYPE_ORDERBOOK]
+        if sub['InternalQueue'] is None:
+            sub['InternalQueue'] = queue.Queue()
+        sub['InternalQueue'].put(msg)
+        self.tickers.increment_nounces(ticker)
+        pass
+
+    def _transfer_backorder_queue(self, ticker):
+        sub = self.tickers.list[ticker][Ticker.SUB_TYPE_ORDERBOOK]
+        q=sub['InternalQueue']
+        while True:
+            try:
+                e = q.get(False)
+            except queue.Empty:
+                sub['InternalQueue'] = None
+                return
+            except AttributeError:
+                # The order queue is syncing the order book but still hasn't finished.
+                pass
+            else:
+                self.order_queue.put(e)
+
     # ========================
     # Private Channels Methods
     # ========================
@@ -589,16 +607,23 @@ class BittrexSocket(WebSocket):
 
     def _on_tick_update(self, msg):
         self._is_close_me()
-        subs = self.tickers.list[msg['MarketName']]
-        if subs['OrderBook']['Active'] is True:
-            self.order_queue.put(msg)
-        if subs['OrderBookUpdate']['Active'] is True:
+        ticker = msg['MarketName']
+        subs = self.tickers.get_ticker_subs(ticker)
+        if self.tickers.get_sub_state(ticker, Ticker.SUB_TYPE_ORDERBOOK) is True:
+            snapshot_state = self.tickers.get_snapshot_state(ticker)
+            if snapshot_state in [Ticker.SNAPSHOT_OFF, Ticker.SNAPSHOT_SENT]:
+                self._init_backorder_queue(ticker, msg)
+            else:
+                if snapshot_state == Ticker.SNAPSHOT_RCVD:
+                    self._transfer_backorder_queue(ticker)
+                self.order_queue.put(msg)
+        if subs[Ticker.SUB_TYPE_ORDERBOOKUPDATE]['Active'] is True:
             if msg['Buys'] or msg['Sells']:
                 d = dict(self._create_base_layout(msg),
                          **{'bids': msg['Buys'],
                             'asks': msg['Sells']})
                 self.orderbook_update.on_change(d)
-        if subs['Trades']['Active'] is True:
+        if subs[Ticker.SUB_TYPE_TRADES]['Active'] is True:
             if msg['Fills']:
                 d = dict(self._create_base_layout(msg),
                          **{'trades': msg['Fills']})

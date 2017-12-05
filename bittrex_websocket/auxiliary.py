@@ -36,7 +36,7 @@ class Ticker(object):
         d = \
             {
                 self.SUB_TYPE_ORDERBOOK: dict(self._set_default_subscription(),
-                                              **{'SnapshotState': 0, 'OrderBookDepth': 10}),
+                                              **{'SnapshotState': 0, 'OrderBookDepth': 10, 'NouncesRcvd': 0}),
                 self.SUB_TYPE_ORDERBOOKUPDATE: self._set_default_subscription(),
                 self.SUB_TYPE_TRADES: self._set_default_subscription(),
                 self.SUB_TYPE_TICKERUPDATE: self._set_default_subscription(),

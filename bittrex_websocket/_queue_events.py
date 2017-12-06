@@ -1,4 +1,5 @@
-from .auxiliary import Ticker, BittrexConnection, INVALID_SUB, Common
+from ._auxiliary import Ticker, Common
+from .constants import *
 
 
 class Event(object):
@@ -50,10 +51,10 @@ class SubscribeEvent(Event):
         if sub_type not in Ticker().get_sub_types():
             raise SystemError(INVALID_SUB)
         else:
-            if sub_type == Ticker.SUB_TYPE_TICKERUPDATE:
-                self.server_callback_no_payload = [BittrexConnection.CALLBACK_SUMMARY_DELTAS]
+            if sub_type == SUB_TYPE_TICKERUPDATE:
+                self.server_callback_no_payload = [CALLBACK_SUMMARY_DELTAS]
             else:
-                self.server_callback = [BittrexConnection.CALLBACK_EXCHANGE_DELTAS]
+                self.server_callback = [CALLBACK_EXCHANGE_DELTAS]
 
 
 class SubscribeInternalEvent(Event):

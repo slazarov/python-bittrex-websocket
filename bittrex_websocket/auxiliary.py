@@ -214,6 +214,9 @@ class Ticker(object):
     def increment_nounces(self, ticker):
         self.list[ticker][Ticker.SUB_TYPE_ORDERBOOK]['NouncesRcvd'] += 1
 
+    def get_nounces(self, ticker):
+        return self.list[ticker][Ticker.SUB_TYPE_ORDERBOOK]['NouncesRcvd']
+
     @staticmethod
     def _fix_type_error(tickers):
         # Tickers should be [], even if there is a single ticker.

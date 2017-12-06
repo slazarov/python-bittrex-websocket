@@ -33,24 +33,42 @@ class WebSocket(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def subscribe_to_orderbook(self, tickers, book_depth):
-        # Subscribe and maintain the live order book for a set of ticker(s)
+    def subscribe_to_orderbook(self, tickers, book_depth=10):
+        """
+        Subscribe and maintain the live order book for a set of ticker(s).
+
+        :param tickers: A list of tickers you are interested in.
+        :type tickers: []
+        :param book_depth: The desired depth of the order book to be maintained.
+        :type book_depth: int
+        """
         raise NotImplementedError("Should implement subscribe_to_orderbook()")
 
     @abstractmethod
     def subscribe_to_orderbook_update(self, tickers):
-        # Subscribe to order book updates for a set of ticker(s)
+        """
+        Subscribe to order book updates for a set of ticker(s).
+
+        :param tickers: A list of tickers you are interested in.
+        :type tickers: []
+        """
         raise NotImplementedError("Should implement subscribe_to_orderbook_update")
 
     @abstractmethod
     def subscribe_to_trades(self, tickers):
-        # Subscribe and receive tick data(executed trades) for a set of ticker(s)
+        """
+        Subscribe and receive tick data(executed trades) for a set of ticker(s).
+
+        :param tickers: A list of tickers you are interested in.
+        :type tickers: []
+        """
         raise NotImplementedError("Should implement subscribe_to_trades()")
 
     @abstractmethod
     def subscribe_to_ticker_update(self, tickers):
         """
         Subscribe and receive general data updates for a set of ticker(s). Example output:
+
         {
             'MarketName': 'BTC-ADA',
             'High': 7.65e-06,
@@ -66,28 +84,49 @@ class WebSocket(object):
             'PrevDay': 5.02e-06,
             'Created': '2017-09-29T07:01:58.873'
         }
+
+        :param tickers: A list of tickers you are interested in.
+        :type tickers: []
         """
         raise NotImplementedError("Should implement subscribe_to_ticker_update()")
 
     @abstractmethod
     def unsubscribe_to_orderbook(self, tickers):
-        # Subscribe and maintain the live order book for a set of ticker(s)
+        """
+        Unsubscribe from real time order for specific set of ticker(s).
+
+        :param tickers: A list of tickers you are interested in.
+        :type tickers: []
+        """
         raise NotImplementedError("Should implement unsubscribe_to_orderbook()")
 
     @abstractmethod
     def unsubscribe_to_orderbook_update(self, tickers):
-        # Subscribe to order book updates for a set of ticker(s)
+        """
+        Unsubscribe from order book updates for a set of ticker(s).
+
+        :param tickers: A list of tickers you are interested in.
+        :type tickers: []
+        """
         raise NotImplementedError("Should implement unsubscribe_to_orderbook_update")
 
     @abstractmethod
     def unsubscribe_to_trades(self, tickers):
-        # Subscribe and receive tick data(executed trades) for a set of ticker(s)
+        """
+        Unsubscribe from receiving tick data(executed trades) for a set of ticker(s)
+
+        :param tickers: A list of tickers you are interested in.
+        :type tickers: []
+        """
         raise NotImplementedError("Should implement unsubscribe_to_trades()")
 
     @abstractmethod
     def unsubscribe_to_ticker_update(self, tickers):
         """
-        Subscribe and receive general data updates for a set of ticker(s). Example output:
+        Unsubscribe from receiving general data updates for a set of ticker(s).
+
+        :param tickers: A list of tickers you are interested in.
+        :type tickers: []
         """
         raise NotImplementedError("Should implement unsubscribe_to_ticker_update()")
 
@@ -101,14 +140,7 @@ class WebSocket(object):
 
 class BittrexSocket(WebSocket):
     def __init__(self):
-        """
-
-        """
-        self.tickers = Ticker()
-        self.threads = {}
-        self.url = ['https://socket-stage.bittrex.com/signalr',
-                    'https://socket.bittrex.com/signalr',
-                    'https://socket-beta.bittrex.com/signalr']
+        # Event handlers
         self.updateSummaryState = Events()
         self.updateSummaryState.on_change += self.on_ticker_update
         self.orderbook_callback = Events()
@@ -120,11 +152,16 @@ class BittrexSocket(WebSocket):
         # Queues
         self.control_queue = queue.Queue()
         self.order_queue = None
-        self._start_main_thread()
-        # Test
+        # Other
         self.conn_list = {}
         self.order_book = {}
+        self.threads = {}
+        self.url = ['https://socket-stage.bittrex.com/signalr',
+                    'https://socket.bittrex.com/signalr',
+                    'https://socket-beta.bittrex.com/signalr']
+        self.tickers = Ticker()
         self.max_tickers_per_conn = 20
+        self._start_main_thread()
 
     # ===========================
     # Main Thread Private Methods
@@ -133,7 +170,7 @@ class BittrexSocket(WebSocket):
     def _start_main_thread(self):
         """
         The websocket clients starts a separate thread upon
-        initialization with further subthreads for each connection
+        initialization with further subthreads for each connection.
         """
         thread = Thread(target=self._start_socket_control_queue)
         thread.daemon = True
@@ -172,11 +209,11 @@ class BittrexSocket(WebSocket):
                     elif control_event.type == 'SNAPSHOT':
                         self._handle_get_snapshot(control_event)
                     self.control_queue.task_done()
-                    sleep(0.2)
 
     def _handle_connect(self, conn_event):
         """
-        Start a new Bittrex connection in a new thread
+        Prepares and starts new thread for a new Bittrex connection.
+
         :param conn_event: Contains the connection object.
         :type conn_event: ConnectEvent
         """
@@ -187,6 +224,12 @@ class BittrexSocket(WebSocket):
         thread.start()
 
     def _init_connection(self, conn_obj):
+        """
+        Initiates the Bittrex connection and assigns event handlers.
+
+        :param conn_obj: The Bittrex connection object
+        :type conn_obj: BittrexConnection
+        """
         conn, corehub = conn_obj.conn, conn_obj.corehub
         for url in self.url:
             try:
@@ -200,7 +243,7 @@ class BittrexSocket(WebSocket):
                 corehub.client.on('updateSummaryState', self._on_ticker_update)
                 conn.wait(120000)
                 # When we purposely close the connection, the script will exit conn.wait()
-                # so we need to inform the script that it should not try to reconnect
+                # so we need to inform the script that it should not try to reconnect.
                 if conn_obj.close_me is True:
                     return
             except HTTPError:
@@ -213,12 +256,12 @@ class BittrexSocket(WebSocket):
 
     def _handle_disconnect(self, disconn_event):
         """
-        Closing a connection from an external error results in an error.
-        We set a close_me flag so that next time when a message is received
-        from the thread that started the connection, a method will be called to close it.
+        Handles the event of disconnecting connections.
 
-        Returns True if all connections have to be closed.
-        Returns False if only specific has to be closed.
+        :type disconn_event: The disconnect event.
+        :type disconn_event: DisconnectEvent
+        :return: True = all connections have to be closed; False = specific connection has to be closed.
+        :rtype: bool
         """
 
         # Find whether we are closing all connections or just one.
@@ -230,6 +273,10 @@ class BittrexSocket(WebSocket):
             conns = disconn_event.conn_object
             msg = 'Connection {} has been successfully closed.'.format(conns[0].id)
             flag = False
+
+        # Closing a connection from an external error results in an error.
+        # We set a close_me flag so that next time when a message is received
+        # from the thread that started the connection, a method will be called to close it.
         for conn in conns:
             conn.close()
             while conn.state:
@@ -238,6 +285,14 @@ class BittrexSocket(WebSocket):
         return flag
 
     def _handle_subscribe(self, sub_event):
+        """
+        Handles the event of subscribing a specific ticker to a specific subscription type.
+
+        :param sub_event: The ticker subscription event
+        :type sub_event: SubscribeEvent
+        :return: False = Subscribing failed because the connection is not active.
+        :rtype: bool
+        """
         conn = sub_event.conn_object
         server_callback = sub_event.server_callback
         server_callback_no_payload = sub_event.server_callback_no_payload
@@ -249,8 +304,8 @@ class BittrexSocket(WebSocket):
             timeout += 1
             if timeout >= 100:
                 logging.debug(
-                    'Failed to subscribe [{}][{}] from connection {} after 20 seconds. The connection is probably down.'.format(
-                        sub_type, tickers, conn.id))
+                    'Failed to subscribe [{}][{}] from connection {} after 20 seconds. '
+                    'The connection is probably down.'.format(sub_type, tickers, conn.id))
                 return
         else:
             self.tickers.enable(tickers, sub_type, conn.id)
@@ -275,31 +330,49 @@ class BittrexSocket(WebSocket):
                 print('Failed to subscribe')
 
     def _handle_subscribe_internal(self, sub_event):
+        """
+        If the ticker is already in the tickers list and it shares a subscription
+        callback for the new subscription request, then we don't have to invoke
+        a request to Bittrex but only enable the subscription state internally,
+        because the messages are received but are filtered.
+
+        :param sub_event: The internal subscribe event.
+        :type sub_event: SubscribeInternalEvent
+        """
         tickers = sub_event.tickers
         conn = sub_event.conn_object
         sub_type = sub_event.sub_type
         self.tickers.enable(tickers, sub_type, conn.id)
 
     def _handle_unsubscribe(self, unsub_event):
+        """
+        Handles the event of revoking a specific active subscription
+        for a specific ticker. Also if no active subscriptions remain,
+        the websocket client is closed.
+
+        :param unsub_event: The ticker unsubscribe event.
+        :type unsub_event: UnsubscribeEvent
+        """
         ticker, sub_type, conn_id = unsub_event.ticker, unsub_event.sub_type, unsub_event.conn_id
         self.tickers.disable(ticker, sub_type, conn_id)
         self._is_no_subs_active()
 
-    def _get_ordernum_in_queue(self, ticker):
-        # ADD BETTER ERROR HANDLING FOR THIS
-        nounces = self.tickers.list[ticker][Ticker.SUB_TYPE_ORDERBOOK]['NouncesRcvd']
-        return nounces
-
     def _handle_get_snapshot(self, snapshot_event):
+        """
+        Requests an order book snapshot request from Bittrex.
+
+        :param snapshot_event: The ticker snapshot event.
+        :type snapshot_event: SnapshotEvent
+        """
         conn, ticker = snapshot_event.conn_object, snapshot_event.ticker
         method = 'queryExchangeState'
-        # Wait for the connection to start successfully and record 2 nounces of data
-        while conn.state is False or self._get_ordernum_in_queue(ticker) < 2:
+        # Wait for the connection to start successfully and record N nounces of data
+        while conn.state is False or self.tickers.get_nounces(ticker) < 5:
             sleep(0.1)
         else:
             try:
-                logging.debug(
-                    '[Subscription][{}][{}]: Order book snapshot requested.'.format(Ticker.SUB_TYPE_ORDERBOOK, ticker))
+                logging.debug('[Subscription][{}][{}]: Order book snapshot '
+                              'requested.'.format(Ticker.SUB_TYPE_ORDERBOOK, ticker))
                 conn.corehub.server.invoke(method, ticker)
                 self.tickers.set_snapshot_state(ticker, Ticker.SNAPSHOT_SENT)
             except Exception as e:
@@ -308,25 +381,8 @@ class BittrexSocket(WebSocket):
         while self.tickers.get_snapshot_state(ticker) is not Ticker.SNAPSHOT_ON:
             sleep(0.5)
 
-    # def _get_snapshot(self, ticker, conn):
-    #     method = 'queryExchangeState'
-    #     # Wait for the connection to start successfully and record 2 nounces of data
-    #     while conn.state is False or self._get_ordernum_in_queue(ticker) < 2:
-    #         sleep(0.2)
-    #     else:
-    #         try:
-    #             logging.debug(
-    #                 '[Subscription][{}][{}]: Order book snapshot requested.'.format(Ticker.SUB_TYPE_ORDERBOOK, ticker))
-    #             conn.corehub.server.invoke(method, ticker)
-    #             self.tickers.set_snapshot_state(ticker, Ticker.SNAPSHOT_SENT)
-    #         except Exception as e:
-    #             print(e)
-    #             print('Failed to invoke snapshot query')
-    #     while self.tickers.get_snapshot_state(ticker) is not Ticker.SNAPSHOT_ON:
-    #         sleep(0.5)
-
     def _is_first_run(self, tickers, sub_type):
-        # Check if the websocket is has been initiated already or if it's the first run
+        # Check if the websocket has been initiated already or if it's the first run.
         if not self.tickers.list:
             self.on_open()
             self._subscribe_first_run(tickers, sub_type)
@@ -335,7 +391,7 @@ class BittrexSocket(WebSocket):
 
     def _subscribe_first_run(self, tickers, sub_type, objects=None):
         if objects is None:
-            objects = self._create_connection(tickers)
+            objects = self._create_btrx_connection(tickers)
         for obj in objects:
             self.control_queue.put(ConnectEvent(obj[1]))
             self.control_queue.put(SubscribeEvent(obj[0], obj[1], sub_type))
@@ -377,11 +433,13 @@ class BittrexSocket(WebSocket):
             else:
                 if order_event is not None:
                     ticker = order_event['MarketName']
-                    snapshot_state = self.tickers.list[ticker]['OrderBook']['SnapshotState']
-                    if snapshot_state == Ticker.SNAPSHOT_RCVD:
-                        if self._sync_order_book(ticker, order_event):
+                    snapshot_state = self.tickers.get_snapshot_state(ticker)
+                    if snapshot_state in [Ticker.SNAPSHOT_OFF, Ticker.SNAPSHOT_SENT]:
+                        self._init_backorder_queue(ticker, order_event)
+                    elif snapshot_state == Ticker.SNAPSHOT_RCVD:
+                        if self._transfer_backorder_queue(ticker):
                             self.tickers.set_snapshot_state(ticker, Ticker.SNAPSHOT_ON)
-                    elif snapshot_state == Ticker.SNAPSHOT_ON:
+                    if self.tickers.get_snapshot_state(ticker) == Ticker.SNAPSHOT_ON:
                         self._sync_order_book(ticker, order_event)
                         self.orderbook_callback.on_change(self.order_book[ticker])
                     self.order_queue.task_done()
@@ -389,9 +447,7 @@ class BittrexSocket(WebSocket):
     def _is_running(self, tickers, sub_type):
         # Check for existing connections
         if self.conn_list:
-            # Check for already existing tickers and enable the subscription before opening a new connection
-            common_tickers = set(tickers) & set(self.tickers.list)  # common
-            new_tickers = set(tickers) - set(self.tickers.list)  # unique
+            # Check for already existing tickers and enable the subscription before opening a new connection.
             for ticker in tickers:
                 if self.tickers.get_sub_state(ticker, sub_type) is Ticker.SUB_STATE_ON:
                     logging.debug('{} subscription is already enabled for {}. Ignoring...'.format(sub_type, ticker))
@@ -446,14 +502,14 @@ class BittrexSocket(WebSocket):
                 return [SubscribeEvent(ticker, self.conn_list[conn_id], sub_type)]
             # The existing connections are in full capacity, create a new connection and subscribe.
             else:
-                obj = self._create_connection([ticker])[0]
+                obj = self._create_btrx_connection([ticker])[0]
                 conn_event = ConnectEvent(obj[1])
                 sub_event = SubscribeEvent(ticker, obj[1], sub_type)
                 return [conn_event, sub_event]
 
     def _is_no_subs_active(self):
+        # Close the websocket if no active connections remain.
         active_conns = self.tickers.sort_by_callbacks()
-        # Close the websocket if no active connections
         if not active_conns:
             self.disconnect()
         else:
@@ -475,6 +531,14 @@ class BittrexSocket(WebSocket):
     # -----------------
 
     def subscribe_to_orderbook(self, tickers, book_depth=10):
+        """
+        Subscribe and maintain the live order book for a set of ticker(s).
+
+        :param tickers: A list of tickers you are interested in.
+        :type tickers: []
+        :param book_depth: The desired depth of the order book to be maintained.
+        :type book_depth: int
+        """
         sub_type = Ticker.SUB_TYPE_ORDERBOOK
         self._is_order_queue()
         if self._is_first_run(tickers, sub_type) is False:
@@ -482,16 +546,50 @@ class BittrexSocket(WebSocket):
         self.tickers.set_book_depth(tickers, book_depth)
 
     def subscribe_to_orderbook_update(self, tickers):
+        """
+        Subscribe to order book updates for a set of ticker(s).
+
+        :param tickers: A list of tickers you are interested in.
+        :type tickers: []
+        """
         sub_type = Ticker.SUB_TYPE_ORDERBOOKUPDATE
         if self._is_first_run(tickers, sub_type) is False:
             self._is_running(tickers, sub_type)
 
     def subscribe_to_trades(self, tickers):
+        """
+        Subscribe and receive tick data(executed trades) for a set of ticker(s).
+
+        :param tickers: A list of tickers you are interested in.
+        :type tickers: []
+        """
         sub_type = Ticker.SUB_TYPE_TRADES
         if self._is_first_run(tickers, sub_type) is False:
             self._is_running(tickers, sub_type)
 
     def subscribe_to_ticker_update(self, tickers):
+        """
+        Subscribe and receive general data updates for a set of ticker(s). Example output:
+
+        {
+            'MarketName': 'BTC-ADA',
+            'High': 7.65e-06,
+            'Low': 4.78e-06,
+            'Volume': 1352355429.5288217,
+            'Last': 7.2e-06,
+            'BaseVolume': 7937.59243908,
+            'TimeStamp': '2017-11-28T15:02:17.7',
+            'Bid': 7.2e-06,
+            'Ask': 7.21e-06,
+            'OpenBuyOrders': 4452,
+            'OpenSellOrders': 3275,
+            'PrevDay': 5.02e-06,
+            'Created': '2017-09-29T07:01:58.873'
+        }
+
+        :param tickers: A list of tickers you are interested in.
+        :type tickers: []
+        """
         sub_type = Ticker.SUB_TYPE_TICKERUPDATE
         if self._is_first_run(tickers, sub_type) is False:
             self._is_running(tickers, sub_type)
@@ -501,18 +599,42 @@ class BittrexSocket(WebSocket):
     # -------------------
 
     def unsubscribe_to_orderbook(self, tickers):
+        """
+        Unsubscribe from real time order for specific set of ticker(s).
+
+        :param tickers: A list of tickers you are interested in.
+        :type tickers: []
+        """
         sub_type = Ticker.SUB_TYPE_ORDERBOOK
         self._unsubscribe(tickers, sub_type)
 
     def unsubscribe_to_orderbook_update(self, tickers):
+        """
+        Unsubscribe from order book updates for a set of ticker(s).
+
+        :param tickers: A list of tickers you are interested in.
+        :type tickers: []
+        """
         sub_type = Ticker.SUB_TYPE_ORDERBOOKUPDATE
         self._unsubscribe(tickers, sub_type)
 
     def unsubscribe_to_trades(self, tickers):
+        """
+        Unsubscribe from receiving tick data(executed trades) for a set of ticker(s)
+
+        :param tickers: A list of tickers you are interested in.
+        :type tickers: []
+        """
         sub_type = Ticker.SUB_TYPE_TRADES
         self._unsubscribe(tickers, sub_type)
 
     def unsubscribe_to_ticker_update(self, tickers):
+        """
+        Unsubscribe from receiving general data updates for a set of ticker(s).
+
+        :param tickers: A list of tickers you are interested in.
+        :type tickers: []
+        """
         sub_type = Ticker.SUB_TYPE_TICKERUPDATE
         self._unsubscribe(tickers, sub_type)
 
@@ -521,9 +643,18 @@ class BittrexSocket(WebSocket):
     # -------------
 
     def disconnect(self):
+        """
+        Disconnects the connections and stops the websocket instance
+        """
         self.control_queue.put(DisconnectEvent())
 
-    def _create_connection(self, tickers):
+    def get_order_book(self, ticker=None):
+        if ticker is None:
+            return self.order_book
+        else:
+            return self.order_book[ticker]
+
+    def _create_btrx_connection(self, tickers):
         results = []
 
         def get_chunks(l, n):
@@ -552,14 +683,11 @@ class BittrexSocket(WebSocket):
         return BittrexConnection(conn, corehub)
 
     def _is_orderbook_snapshot(self, msg):
-        # Redirects full order book snapshots for a specific ticker to the main message channel (on_message).
-        # That's because there is no corresponding server callback for queryExchangeState
-        # which can be assigned to a data handling method.
+        # Detect if the message contains order book snapshots and manipulate them.
         if 'R' in msg and type(msg['R']) is not bool:
             if 'MarketName' in msg['R'] and msg['R']['MarketName'] is None:
                 for ticker in self.tickers.list.values():
                     if ticker['OrderBook']['SnapshotState'] == Ticker.SNAPSHOT_SENT:
-                        # ticker['OrderBook']['Snapshot'] = msg
                         msg['R']['MarketName'] = ticker['Name']
                         del msg['R']['Fills']
                         self.order_book[ticker['Name']] = msg['R']
@@ -575,22 +703,20 @@ class BittrexSocket(WebSocket):
             sub['InternalQueue'] = queue.Queue()
         sub['InternalQueue'].put(msg)
         self.tickers.increment_nounces(ticker)
-        pass
 
     def _transfer_backorder_queue(self, ticker):
         sub = self.tickers.list[ticker][Ticker.SUB_TYPE_ORDERBOOK]
-        q=sub['InternalQueue']
+        q = sub['InternalQueue']
         while True:
             try:
                 e = q.get(False)
             except queue.Empty:
                 sub['InternalQueue'] = None
-                return
-            except AttributeError:
-                # The order queue is syncing the order book but still hasn't finished.
-                pass
+                return True
             else:
-                self.order_queue.put(e)
+                if self._sync_order_book(ticker, e):
+                    self.tickers.set_snapshot_state(ticker, Ticker.SNAPSHOT_ON)
+                q.task_done()
 
     # ========================
     # Private Channels Methods
@@ -610,13 +736,7 @@ class BittrexSocket(WebSocket):
         ticker = msg['MarketName']
         subs = self.tickers.get_ticker_subs(ticker)
         if self.tickers.get_sub_state(ticker, Ticker.SUB_TYPE_ORDERBOOK) is True:
-            snapshot_state = self.tickers.get_snapshot_state(ticker)
-            if snapshot_state in [Ticker.SNAPSHOT_OFF, Ticker.SNAPSHOT_SENT]:
-                self._init_backorder_queue(ticker, msg)
-            else:
-                if snapshot_state == Ticker.SNAPSHOT_RCVD:
-                    self._transfer_backorder_queue(ticker)
-                self.order_queue.put(msg)
+            self.order_queue.put(msg)
         if subs[Ticker.SUB_TYPE_ORDERBOOKUPDATE]['Active'] is True:
             if msg['Buys'] or msg['Sells']:
                 d = dict(self._create_base_layout(msg),
@@ -714,7 +834,7 @@ class BittrexSocket(WebSocket):
                     # Add nounce unix timestamp
                     self.order_book[pair_name]['timestamp'] = time()
 
-                    # tick='BTC-ZEC'
+                    # tick = 'BTC-ETH'
                     # if order_data['MarketName'] == tick:
                     #     buys = self.order_book[tick]['Buys'][0]
                     #     buys2 = self.order_book[tick]['Buys'][1]
@@ -722,7 +842,11 @@ class BittrexSocket(WebSocket):
                     #     sells2 = self.order_book[tick]['Sells'][1]
                     #     print(str(buys) + str(buys2) + str(sells) + str(sells2))
             return True
-        elif nounce_diff <= 0:
+        # The next nounce will trigger a sync.
+        elif nounce_diff == 0:
+            return True
+        # The order book snapshot nounce is ahead. Discard this nounce.
+        elif nounce_diff < 0:
             return False
         else:
             raise NotImplementedError("Implement nounce resync!")
@@ -747,52 +871,41 @@ class BittrexSocket(WebSocket):
     # ===============
 
     def on_open(self):
-        # Called before initiating the websocket connection
-        # Use it when you want to add optional parameters
+        # Called before initiating the first websocket connection
+        # Use it when you want to add some opening logic.
         pass
 
     def on_close(self):
-        # Called after closing the websocket connection
+        # Called before closing the websocket instance.
         # Use it when you want to add any closing logic.
-        print('Bittrex websocket closed.')
+        # print('Bittrex websocket closed.')
+        pass
 
     def on_error(self, error):
         # Error handler
         print(error)
         self.disconnect()
 
-    def on_message(self, msg):
-        """
-        !!!TO BE DEPRECATED!!!
-        This is where you get the order flow stream.
-        Subscribed via 'updateExchangeState'
-        Access it from args[0]
-        Example output:
-            {
-                'MarketName': 'BTC-ETH',
-                'Nounce': 101846,
-                'Buys': [{'Type': 1, 'Rate': 0.05369548, 'Quantity': 0.0}],
-                'Sells': [{'Type': 2, 'Rate': 0.05373854, 'Quantity': 62.48260112}],
-                'Fills': [{'OrderType': 'BUY', 'Rate': 0.05373854, 'Quantity': 0.88839888,
-                           'TimeStamp': '2017-11-24T13:18:43.44'}]
-            }
-        """
-        # Implement summary state later
-        # if 'Deltas' in msg:
-        #     self.updateSummaryState.on_change(msg)
-
     def on_orderbook(self, msg):
-        print('Just updated the order book of ' + msg['MarketName'])
+        # The main channel of subscribe_to_orderbook().
+        # print('[OrderBook]: {}'.format(msg['MarketName']))
+        pass
 
     def on_orderbook_update(self, msg):
-        print('Just received order book updates for ' + msg['ticker'])
+        # The main channel of subscribe_to_orderbook_update().
+        # print('[OrderBookUpdate]: {}'.format(msg['ticker']))
+        pass
 
     def on_trades(self, msg):
-        print('Just received trade update for ' + msg['ticker'])
+        # The main channel of subscribe_to_trades().
+        # print('[Trades]: {}'.format(msg['ticker']))
+        pass
 
     def on_ticker_update(self, msg):
-        for item in msg.values():
-            print('Just received ticker update for ' + item['MarketName'])
+        # The main channel of subscribe_to_ticker_update().
+        # for item in msg.values():
+        #    print('[TickerUpdate]: {}'.format(item['MarketName']))
+        pass
 
 
 if __name__ == "__main__":

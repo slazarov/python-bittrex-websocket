@@ -20,7 +20,7 @@ class ConnectEvent(Event):
 
 class DisconnectEvent(Event):
     """
-    Handles the event of disconnecting the connections and stopping the websocket instance.
+    Handles the event of disconnecting connections.
     """
 
     def __init__(self, conn_object=None):

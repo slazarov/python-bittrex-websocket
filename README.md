@@ -1,6 +1,7 @@
 # bittrex-websocket
-**Python3** websocket client ([SignalR](https://pypi.python.org/pypi/signalr-client/0.0.7)) for getting live streaming data from [Bittrex Exchange](http://bittrex.com).
+**Python** websocket client ([SignalR](https://pypi.python.org/pypi/signalr-client/0.0.7)) for getting live streaming data from [Bittrex Exchange](http://bittrex.com).
 
+The library is mainly written in Python3 but should support Python2 with the same functionality, please report any issues.
 ### Disclaimer
 
 *I am not associated with Bittrex. Use the library at your own risk, I don't bear any responsibility if you end up losing your money.*
@@ -39,15 +40,15 @@ I have been largely motivated by the following projects and people:
 * Eric Somdahl: [python-bittrex](https://github.com/ericsomdahl/python-bittrex) - great python bindings for Bittrex. Highly recommend it, I use it in conjuction with the websocket client.
 
 # Currently in development
-More user friendly subscription to the exchange channels by wrapping the callbacks in methods.
-
-# To do
 * Test scripts
 * PyPi
 * Better documentation
 * Code cleanup, optimization
 * Better error handling
 * Lots of stuff, waiting for suggestions
+
+# Done
+* ~~More user friendly subscription to the exchange channels.~~
 
 # Dependencies
 To successfully install the package the following dependencies must be met:
@@ -64,15 +65,96 @@ I am only adding this as a precaution, in most case you will not have to do anyt
 ```python
 pip install git+https://github.com/slazarov/python-bittrex-websocket.git
 ```
-# Parameters
-##### bittrex_websocket.BittrexSocket(tickers, conn_type)
-        :param tickers: a list of tickers, single tickers should also be supplied as a list. Default: ['ETH-BTC']
+# Methods
+#### Subscribe Methods
+```python
+    def subscribe_to_orderbook(self, tickers, book_depth=10):
+        """
+        Subscribe and maintain the live order book for a set of ticker(s).
+
+        :param tickers: A list of tickers you are interested in.
         :type tickers: []
-        :param conn_type: 'normal' direct connection or 'cloudflare' workaround. Default: 'normal
-        :type conn_type: str
-##### bittrex_websocket.OrderBook(tickers, book_depth, conn_type)
-        :param book_depth: The depth of the order book, Default: 10
+        :param book_depth: The desired depth of the order book to be maintained.
         :type book_depth: int
+        """
+
+    def subscribe_to_orderbook_update(self, tickers):
+        """
+        Subscribe to order book updates for a set of ticker(s).
+
+        :param tickers: A list of tickers you are interested in.
+        :type tickers: []
+        """
+
+    def subscribe_to_trades(self, tickers):
+        """
+        Subscribe and receive tick data(executed trades) for a set of ticker(s).
+
+        :param tickers: A list of tickers you are interested in.
+        :type tickers: []
+        """
+
+    def subscribe_to_ticker_update(self, tickers):
+        """
+        Subscribe and receive general data updates for a set of ticker(s). Example output:
+
+        {
+            'MarketName': 'BTC-ADA',
+            'High': 7.65e-06,
+            'Low': 4.78e-06,
+            'Volume': 1352355429.5288217,
+            'Last': 7.2e-06,
+            'BaseVolume': 7937.59243908,
+            'TimeStamp': '2017-11-28T15:02:17.7',
+            'Bid': 7.2e-06,
+            'Ask': 7.21e-06,
+            'OpenBuyOrders': 4452,
+            'OpenSellOrders': 3275,
+            'PrevDay': 5.02e-06,
+            'Created': '2017-09-29T07:01:58.873'
+        }
+
+        :param tickers: A list of tickers you are interested in.
+        :type tickers: []
+        """
+
+```
+
+#### Unsubscribe Methods
+
+```python
+    def unsubscribe_to_orderbook(self, tickers):
+        """
+        Unsubscribe from real time order for specific set of ticker(s).
+
+        :param tickers: A list of tickers you are interested in.
+        :type tickers: []
+        """
+
+    def unsubscribe_to_orderbook_update(self, tickers):
+        """
+        Unsubscribe from order book updates for a set of ticker(s).
+
+        :param tickers: A list of tickers you are interested in.
+        :type tickers: []
+        """
+
+    def unsubscribe_to_trades(self, tickers):
+        """
+        Unsubscribe from receiving tick data(executed trades) for a set of ticker(s)
+
+        :param tickers: A list of tickers you are interested in.
+        :type tickers: []
+        """
+
+    def unsubscribe_to_ticker_update(self, tickers):
+        """
+        Unsubscribe from receiving general data updates for a set of ticker(s).
+
+        :param tickers: A list of tickers you are interested in.
+        :type tickers: []
+        """
+```
 
 # Websocket client
 To receive live data feed you must subscribe to the websocket.
@@ -95,22 +177,32 @@ ws.run()
 # Do some stuff and trade for infinite profit
 ws.stop()
 ```
-# Websocket methods
+# Message channels
 The websocket clients starts a separate thread upon initialization with further subthreads for each connection (currently 20 tickers per connection). There are several methods which could be overwritten. Please check the actual code for further information and examples.
-##### on_open
-Called before initiating the websocket connection
-Use it when you want to add optional parameters
-##### on_close
-Called after closing the websocket connection
-Use it when you want to add any closing logic.
-##### on_debug
-Debug information, shows all data, this is where you get order book snapshots.
-Please check bittrex_websocket.OrderBook for further information.
-##### on_close
-Handle any errors from the websocket here.
-Future releases will handle errors without having to do it yourself.
-##### on_message
-This is the main method which you will use. Messages contain the order flow stream. Check bittrex_websocket.BittrexSocket for the structure and further information.
+```python
+    def on_open(self):
+        # Called before initiating the first websocket connection
+        # Use it when you want to add some opening logic.
+
+    def on_close(self):
+        # Called before closing the websocket instance.
+        # Use it when you want to add any closing logic.
+
+    def on_error(self, error):
+        # Error handler
+
+    def on_orderbook(self, msg):
+        # The main channel of subscribe_to_orderbook().
+
+    def on_orderbook_update(self, msg):
+        # The main channel of subscribe_to_orderbook_update().
+
+    def on_trades(self, msg):
+        # The main channel of subscribe_to_trades().
+
+    def on_ticker_update(self, msg):
+        # The main channel of subscribe_to_ticker_update().
+```
 
 # Sample usage
 Some sample examples to get you started.

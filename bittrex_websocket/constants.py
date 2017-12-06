@@ -1,0 +1,10 @@
+SNAPSHOT_OFF = 0  # 'Not initiated'
+SNAPSHOT_SENT = 1  # Invoked, not processed
+SNAPSHOT_RCVD = 2  # Received, not processed
+SNAPSHOT_ON = 3  # Received, processed
+SUB_STATE_OFF = False
+SUB_STATE_ON = True
+SUB_TYPE_ORDERBOOK = 'OrderBook'
+SUB_TYPE_ORDERBOOKUPDATE = 'OrderBookUpdate'
+SUB_TYPE_TRADES = 'Trades'
+SUB_TYPE_TICKERUPDATE = 'TickerUpdate'

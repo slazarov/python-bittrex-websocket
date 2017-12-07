@@ -1,3 +1,9 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# bittrex_websocket/examples/record_trades.py
+# Stanislav Lazarov
+
 from __future__ import print_function
 
 from time import sleep

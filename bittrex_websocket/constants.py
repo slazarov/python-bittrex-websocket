@@ -1,3 +1,9 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# bittrex_websocket/constants.py
+# Stanislav Lazarov
+
 INVALID_SUB = 'Subscription type is invalid or not implemented. ' \
               'Available options: OrderBook, OrderBookUpdate, Trades'
 INVALID_SUB_CHANGE = 'Subscription change is invalid. Available options: True/False'

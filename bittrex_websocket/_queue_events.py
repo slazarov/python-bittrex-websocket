@@ -1,3 +1,9 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# bittrex_websocket/_queue_events.py
+# Stanislav Lazarov
+
 from ._auxiliary import Ticker, Common
 from .constants import *
 

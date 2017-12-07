@@ -16,6 +16,24 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE
 
+# Table of contents
+* [bittrex\-websocket](#bittrex-websocket)
+* [Testing needed](#testing-needed)
+* [What can I use it for?](#what-can-i-use-it-for)
+* [Motivation](#motivation)
+* [Currently in development](#currently-in-development)
+* [Done](#done)
+* [Dependencies](#dependencies)
+* [Installation](#installation)
+* [Methods](#methods)
+      * [Subscribe Methods](#subscribe-methods)
+      * [Unsubscribe Methods](#unsubscribe-methods)
+      * [Other Methods](#other-methods)
+* [Message channels](#message-channels)
+* [Sample usage](#sample-usage)
+* [Change log](#change-log)
+* [Support](#support)
+
 # Testing needed
 It's a newly published library so please test it and report for any bugs.
 Much appreciated.
@@ -190,27 +208,6 @@ pip install git+https://github.com/slazarov/python-bittrex-websocket.git
         """
 ```
 
-# Websocket client
-To receive live data feed you must subscribe to the websocket.
-##### Subscribe to a single ticker
-```python
-# Parameters
-tickers = tickers = ['BTC-ETH']
-conn_type='cloudflare'
-ws = bittrex_websocket.BittrexSocket(tickers, conn_type)
-ws.run()
-# Do some stuff and trade for infinite profit
-ws.stop()
-```
-##### Subscribe to multiple tickers
-```python
-# Parameters
-tickers = tickers = ['BTC-ETH', 'ETH-1ST', 'BTC-1ST', 'BTC-NEO', 'ETH-NEO']
-ws = bittrex_websocket.BittrexSocket(tickers)
-ws.run()
-# Do some stuff and trade for infinite profit
-ws.stop()
-```
 # Message channels
 The websocket clients starts a separate thread upon initialization with further subthreads for each connection (currently 20 tickers per connection). There are several methods which could be overwritten. Please check the actual code for further information and examples.
 ```python
@@ -239,62 +236,113 @@ The websocket clients starts a separate thread upon initialization with further 
 ```
 
 # Sample usage
-Some sample examples to get you started.
-#### Simple logic
+To receive live data feed you must instantiate the websocket and use one of its subscribe methods. For the various subscription methods check above. Example:
+##### Subscribe to a single ticker
 ```python
-import bittrex_websocket
+# Tickers
+tickers = ['ETH-ZEC'] # use lists
+ws = MySocket()
+ws.subscribe_to_orderbook(tickers)
+# Do some stuff and trade for infinite profit
+ws.disconnect()
+```
+##### Subscribe to multiple tickers
+```python
+# Tickers
+tickers = ['BTC-ETH', 'BTC-NEO', 'BTC-ZEC', 'ETH-NEO', 'ETH-ZEC'] # use lists
+ws = MySocket()
+ws.subscribe_to_ticker_update(tickers)
+# Do some stuff and trade for infinite profit
+ws.disconnect()
+```
+
+Let's get some 'practical' examples. Check examples folder.
+#### Record trades
+```python
+from __future__ import print_function
 from time import sleep
+from bittrex_websocket.websocket_client import BittrexSocket
 
-if __name__ == "__main__":
-    class MyBittrexSocket(bittrex_websocket.BittrexSocket):
+
+def main():
+    class MySocket(BittrexSocket):
         def on_open(self):
-            self.nounces = []
-            self.msg_count = 0
+            self.trade_history = {}
 
-        def on_debug(self, **kwargs):
-            pass
+        def on_trades(self, msg):
+            # Create entry for the ticker in the trade_history dict
+            if msg['ticker'] not in self.trade_history:
+                self.trade_history[msg['ticker']] = []
+            # Add history nounce
+            self.trade_history[msg['ticker']].append(msg)
+            # Ping
+            print('[Trades]: {}'.format(msg['ticker']))
 
-        def on_message(self, *args, **kwargs):
-            self.nounces.append(args[0])
-            self.msg_count += 1
+    ws = MySocket()
+    tickers = ['BTC-ETH', 'BTC-XMR']
+    ws.subscribe_to_trades(tickers)
 
-
-    t = ['BTC-ETH', 'ETH-1ST', 'BTC-1ST', 'BTC-NEO', 'ETH-NEO']
-    ws = MyBittrexSocket(t)
-    ws.run()
-    while ws.msg_count < 20:
+    while len(set(tickers) - set(ws.trade_history)) > 0:
         sleep(1)
         continue
     else:
-        for msg in ws.nounces:
-            print(msg)
-    ws.stop()
+        for ticker in ws.trade_history.keys():
+            print('Printing {} trade history.'.format(ticker))
+            for trade in ws.trade_history[ticker]:
+                print(trade)
+        ws.disconnect()
 
+
+if __name__ == "__main__":
+    main()
 ```
 
 #### Live/Real-time order book
 ```python
-import bittrex_websocket
+from __future__ import print_function
 from time import sleep
+from bittrex_websocket.websocket_client import BittrexSocket
+
+def main():
+    class MySocket(BittrexSocket):
+        def on_orderbook(self, msg):
+            print('[OrderBook]: {}'.format(msg['MarketName']))
+
+    ws = MySocket()
+    tickers = ['BTC-ETH', 'BTC-NEO', 'BTC-ZEC', 'ETH-NEO', 'ETH-ZEC']
+    ws.subscribe_to_orderbook(tickers)
+
+    while True:
+        i = 0
+        sync_states = ws.get_order_book_sync_state()
+        for state in sync_states.values():
+            if state == 3:
+                i += 1
+        if i == len(tickers):
+            print('We are fully synced. Hooray!')
+            for ticker in tickers:
+                ob = ws.get_order_book(ticker)
+                name = ob['MarketName']
+                quantity = str(ob['Buys'][0]['Quantity'])
+                price = str(ob['Buys'][0]['Rate'])
+                print('Ticker: ' + name + ', Bids depth 0: ' + quantity + '@' + price)
+            ws.disconnect()
+            break
+        else:
+            sleep(1)
+
 
 if __name__ == "__main__":
-    tickers = ['BTC-ETH', 'ETH-1ST', 'BTC-1ST', 'BTC-NEO', 'ETH-NEO']
-    order_book = bittrex_websocket.OrderBook(tickers)
-    order_book.run()
-
-    # Do some sample work
-    # Wait until the order book snapshots are identified and confirmed
-    while len(order_book.socket_order_books) < len(order_book.tickers):
-        sleep(5)
-    else:
-        for ticker in order_book.socket_order_books.values():
-            name = ticker['MarketName']
-            quantity = str(ticker['Buys'][0]['Quantity'])
-            price = str(ticker['Buys'][0]['Rate'])
-            print('Ticker: ' + name + ', Bids depth 0: ' + quantity + '@' + price)
-        order_book.stop()
+    main()
 ```
 # Change log
+0.0.2 - Major improvements:
+
+* Additional un/subscribe and order book sync state querying methods added.
+* Better connection and thread management.
+* Code optimisations
+* Better code documentation
+
 0.0.1 - Initial release on github.
 
 # Support

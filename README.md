@@ -342,6 +342,7 @@ if __name__ == "__main__":
 * Better connection and thread management.
 * Code optimisations
 * Better code documentation
+* Added additional connection URLs
 
 0.0.1 - Initial release on github.
 

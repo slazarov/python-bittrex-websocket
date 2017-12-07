@@ -193,6 +193,10 @@ class Ticker(object):
                     conn['{} count'.format(cb)] = 0
         return conns
 
+    def sort_by_sub_types(self):
+        # TO BE IMPLEMENTED WHEN THE OCCASION RISES
+        pass
+
     def get_sub_type_conn_id(self, ticker, sub_type):
         if ticker in self.list:
             return self.list[ticker][sub_type]['ConnectionID']

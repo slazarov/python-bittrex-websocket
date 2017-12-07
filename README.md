@@ -156,6 +156,40 @@ pip install git+https://github.com/slazarov/python-bittrex-websocket.git
         """
 ```
 
+#### Other Methods
+
+```python
+    def get_order_book(self, ticker=None):
+        """
+        Returns the most recently updated order book for the specific ticker.
+        If no ticker is specified, returns a dictionary with the order books of
+        all subscribed tickers.
+
+        :param ticker: The specific ticker you want the order book for.
+        :type ticker: str
+        """
+
+    def get_order_book_sync_state(self, tickers=None):
+        """
+        Returns the sync state of the order book for the specific ticker(s).
+        If no ticker is specified, returns the state for all tickers.
+        The sync states are:
+
+            Not initiated = 0
+            Invoked, not synced = 1
+            Received, not synced, not processing = 2
+            Received, synced, processing = 3
+
+        :param tickers: The specific ticker(s) and it's order book sync state you are interested in.
+        :type tickers: []
+        """
+
+    def disconnect(self):
+        """
+        Disconnects the connections and stops the websocket instance.
+        """
+```
+
 # Websocket client
 To receive live data feed you must subscribe to the websocket.
 ##### Subscribe to a single ticker

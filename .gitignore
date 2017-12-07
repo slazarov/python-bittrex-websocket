@@ -107,5 +107,6 @@ venv.bak/
 # Other
 .idea/
 test.py
+old_releases/
 
 # End of https://www.gitignore.io/api/python

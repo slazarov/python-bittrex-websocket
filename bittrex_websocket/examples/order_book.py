@@ -2,7 +2,6 @@ from __future__ import print_function
 
 from time import sleep
 
-from bittrex_websocket.constants import *
 from bittrex_websocket.websocket_client import BittrexSocket
 
 
@@ -17,10 +16,12 @@ def main():
 
     while True:
         i = 0
-        for ticker in tickers:
-            if ws.tickers.get_snapshot_state(ticker) == SNAPSHOT_ON:
+        sync_states = ws.get_order_book_sync_state()
+        for state in sync_states.values():
+            if state == 3:
                 i += 1
         if i == len(tickers):
+            print('We are fully synced. Hooray!')
             for ticker in tickers:
                 ob = ws.get_order_book(ticker)
                 name = ob['MarketName']
@@ -35,4 +36,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

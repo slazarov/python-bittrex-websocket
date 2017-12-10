@@ -354,7 +354,6 @@ class BittrexSocket(WebSocket):
                                             CALLBACK_STATE_ON)
                     for cb in server_callback_no_payload:
                         conn.corehub.server.invoke(cb)
-                        conn.set_callback_state(cb, conn.CALLBACK_STATE_ON)
             except Exception as e:
                 print(e)
                 print('Failed to subscribe')

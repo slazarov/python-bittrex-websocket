@@ -341,6 +341,8 @@ if __name__ == "__main__":
     main()
 ```
 # Change log
+0.0.3 - Removed left over code from initial release version that was throwing errors (had no effect on performance).
+
 0.0.2 - Major improvements:
 
 * Additional un/subscribe and order book sync state querying methods added.

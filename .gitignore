@@ -108,5 +108,6 @@ venv.bak/
 .idea/
 test.py
 old_releases/
+pypi_build.sh
 
 # End of https://www.gitignore.io/api/python

@@ -4,6 +4,12 @@
 # bittrex_websocket/examples/record_trades.py
 # Stanislav Lazarov
 
+# Sample script to show how subscribe_to_trades() works.
+# Overview:
+#   Creates custom trade_history dict with on_open method.
+#   When an order is executed, the fill is recorded in trade_history.
+#   When each ticker has received an order, the script disconnects.
+
 from __future__ import print_function
 
 from time import sleep
@@ -25,13 +31,15 @@ def main():
             # Ping
             print('[Trades]: {}'.format(msg['ticker']))
 
+    # Create the socket instance
     ws = MySocket()
+    # Define tickers
     tickers = ['BTC-ETH', 'BTC-XMR']
+    # Subscribe to trade fills
     ws.subscribe_to_trades(tickers)
 
     while len(set(tickers) - set(ws.trade_history)) > 0:
         sleep(1)
-        continue
     else:
         for ticker in ws.trade_history.keys():
             print('Printing {} trade history.'.format(ticker))

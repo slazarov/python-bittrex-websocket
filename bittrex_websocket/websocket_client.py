@@ -830,9 +830,7 @@ class BittrexSocket(WebSocket):
                     continue
                 else:
                     if subs['TickerUpdate']['Active']:
-                        ticker_updates[ticker] = update
-        if ticker_updates:
-            self.updateSummaryState.on_change(ticker_updates)
+                        self.updateSummaryState.on_change(update)
 
     # -------------------------------------
     # Private Channels Supplemental Methods
@@ -969,8 +967,7 @@ class BittrexSocket(WebSocket):
 
     def on_ticker_update(self, msg):
         # The main channel of subscribe_to_ticker_update().
-        # for item in msg.values():
-        #    print('[TickerUpdate]: {}'.format(item['MarketName']))
+        # print('Just received ticker update for {}.'.format(msg['MarketName']))
         pass
 
 

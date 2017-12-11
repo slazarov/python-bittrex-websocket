@@ -969,17 +969,3 @@ class BittrexSocket(WebSocket):
         # The main channel of subscribe_to_ticker_update().
         # print('Just received ticker update for {}.'.format(msg['MarketName']))
         pass
-
-
-if __name__ == "__main__":
-    t = ['BTC-ETH', 'ETH-ZEC', 'BTC-ZEC', 'BTC-NEO', 'ETH-NEO']
-    ws = BittrexSocket()
-    ws.subscribe_to_ticker_update(t)
-    for i in range(100):
-        # if ws.conn_list != []:
-        #     if ws.conn_list[0]['corehub'].client._HubClient__handlers =={}:
-        #         ws.conn_list[0]['corehub'].client.on('updateSummaryState', ws.on_message)
-        sleep(1)
-        if i == 15:
-            ws.unsubscribe_to_ticker_update(t)
-        # ws.stop()

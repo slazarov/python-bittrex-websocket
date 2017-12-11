@@ -341,6 +341,9 @@ if __name__ == "__main__":
     main()
 ```
 # Change log
+0.0.4 - Changed the behaviour of how on_ticker_update channel works:
+The message now contains a single ticker instead of a dictionary of all subscribed tickers.
+
 0.0.3 - Removed left over code from initial release version that was throwing errors (had no effect on performance).
 
 0.0.2 - Major improvements:

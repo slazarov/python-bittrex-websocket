@@ -60,7 +60,7 @@ I have been largely motivated by the following projects and people:
 # Road map
 
 ### Notices
-On 11 Jan 2017 the names of the unsubscribe methods will change from:
+On 11 Jan 2018 the names of the unsubscribe methods will change from:
 ```
 unsubscribe_to_orderbook
 unsubscribe_to_orderbook_update

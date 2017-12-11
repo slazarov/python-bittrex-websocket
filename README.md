@@ -57,14 +57,32 @@ I have been largely motivated by the following projects and people:
 
 * Eric Somdahl: [python-bittrex](https://github.com/ericsomdahl/python-bittrex) - great python bindings for Bittrex. Highly recommend it, I use it in conjuction with the websocket client.
 
-# Currently in development
+# Road map
+
+### Notices
+On 11 Jan 2017 the names of the unsubscribe methods will change from:
+```
+unsubscribe_to_orderbook
+unsubscribe_to_orderbook_update
+unsubscribe_to_trades
+unsubscribe_to_ticker_update
+```
+to
+```
+unsubscribe_from_orderbook
+unsubscribe_from_orderbook_update
+unsubscribe_from_trades
+unsubscribe_from_ticker_update
+```
+
+### Currently in development
 * Test scripts
 * Better documentation
 * Code cleanup, optimization
 * Better error handling
 * Lots of stuff, waiting for suggestions
 
-# Done
+### Done
 * ~~More user friendly subscription to the exchange channels.~~
 * ~~Pypi~~
 

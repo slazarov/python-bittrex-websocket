@@ -359,6 +359,11 @@ if __name__ == "__main__":
     main()
 ```
 # Change log
+0.0.5
+* Fixed [Issue #9][https://github.com/slazarov/python-bittrex-websocket/issues/9] relating to `subscribe_to_orderbook_update` handling in internal method `_on_tick_update`
+* Added customer logger as per [PR #6][https://github.com/slazarov/python-bittrex-websocket/issues/6] and [Issue #8][https://github.com/slazarov/python-bittrex-websocket/issues/8] in order to avoid conflicts with other `basicConfig` setups
+* Minor code optimizations (removed unnecessary class Common)
+
 0.0.4 - Changed the behaviour of how on_ticker_update channel works:
 The message now contains a single ticker instead of a dictionary of all subscribed tickers.
 

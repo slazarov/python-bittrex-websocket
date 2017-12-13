@@ -169,6 +169,10 @@ class Ticker(object):
     def get_sub_types(self):
         return self.sub_types
 
+    # Still unused, putting it in case of future demand
+    def get_conn_id(self, ticker, sub_type):
+        return self.list[ticker][sub_type]['ConnectionID']
+
     def sort_by_callbacks(self):
         """
         Returns a dictionary with the following structure:
@@ -269,6 +273,6 @@ class BittrexConnection(object):
 
     @staticmethod
     def _create_structure():
-        d = {CALLBACK_EXCHANGE_DELTAS: False,
-             CALLBACK_SUMMARY_DELTAS: False}
+        d = {CALLBACK_EXCHANGE_DELTAS: CALLBACK_STATE_OFF,
+             CALLBACK_SUMMARY_DELTAS: CALLBACK_STATE_OFF}
         return d

@@ -64,7 +64,7 @@ class WebSocket(object):
         raise NotImplementedError("Should implement subscribe_to_trades()")
 
     @abstractmethod
-    def subscribe_to_ticker_update(self, tickers):
+    def subscribe_to_ticker_update(self, tickers=None):
         """
         Subscribe and receive general data updates for a set of ticker(s). Example output:
 
@@ -85,7 +85,7 @@ class WebSocket(object):
         }
 
         :param tickers: A list of tickers you are interested in.
-        :type tickers: []
+        :type tickers: [] or None
         """
         raise NotImplementedError("Should implement subscribe_to_ticker_update()")
 
@@ -120,12 +120,12 @@ class WebSocket(object):
         raise NotImplementedError("Should implement unsubscribe_to_trades()")
 
     @abstractmethod
-    def unsubscribe_to_ticker_update(self, tickers):
+    def unsubscribe_to_ticker_update(self, tickers=None):
         """
         Unsubscribe from receiving general data updates for a set of ticker(s).
 
         :param tickers: A list of tickers you are interested in.
-        :type tickers: []
+        :type tickers: [] or None
         """
         raise NotImplementedError("Should implement unsubscribe_to_ticker_update()")
 
@@ -348,8 +348,12 @@ class BittrexSocket(WebSocket):
                                 self._get_snapshot([ticker])
                             conn.increment_ticker()
                 if server_callback_no_payload is not None:
+                    if tickers == ALL_TICKERS:
+                        state = CALLBACK_STATE_ON_ALLTICKERS
+                    else:
+                        state = CALLBACK_STATE_ON
                     conn.set_callback_state(CALLBACK_SUMMARY_DELTAS,
-                                            CALLBACK_STATE_ON)
+                                            state)
                     for cb in server_callback_no_payload:
                         conn.corehub.server.invoke(cb)
             except Exception as e:
@@ -594,7 +598,7 @@ class BittrexSocket(WebSocket):
         if self._is_first_run(tickers, sub_type) is False:
             self._is_running(tickers, sub_type)
 
-    def subscribe_to_ticker_update(self, tickers):
+    def subscribe_to_ticker_update(self, tickers=None):
         """
         Subscribe and receive general data updates for a set of ticker(s). Example output:
 
@@ -615,8 +619,10 @@ class BittrexSocket(WebSocket):
         }
 
         :param tickers: A list of tickers you are interested in.
-        :type tickers: []
+        :type tickers: [] or None
         """
+        if tickers is None:
+            tickers = [ALL_TICKERS]
         sub_type = SUB_TYPE_TICKERUPDATE
         if self._is_first_run(tickers, sub_type) is False:
             self._is_running(tickers, sub_type)
@@ -655,13 +661,15 @@ class BittrexSocket(WebSocket):
         sub_type = SUB_TYPE_TRADES
         self._unsubscribe(tickers, sub_type)
 
-    def unsubscribe_to_ticker_update(self, tickers):
+    def unsubscribe_to_ticker_update(self, tickers=None):
         """
         Unsubscribe from receiving general data updates for a set of ticker(s).
 
         :param tickers: A list of tickers you are interested in.
-        :type tickers: []
+        :type tickers: [] or None
         """
+        if tickers is None:
+            tickers = [ALL_TICKERS]
         sub_type = SUB_TYPE_TICKERUPDATE
         self._unsubscribe(tickers, sub_type)
 
@@ -819,14 +827,17 @@ class BittrexSocket(WebSocket):
             return
         if 'Deltas' in msg:
             for update in msg['Deltas']:
-                try:
-                    ticker = update['MarketName']
-                    subs = self.tickers.get_ticker_subs(ticker)
-                except KeyError:  # not in the subscription list
-                    continue
+                if self.tickers.get_sub_state(ALL_TICKERS, SUB_TYPE_TICKERUPDATE) is SUB_STATE_ON:
+                    self.updateSummaryState.on_change(msg['Deltas'])
                 else:
-                    if subs['TickerUpdate']['Active']:
-                        self.updateSummaryState.on_change(update)
+                    try:
+                        ticker = update['MarketName']
+                        subs = self.tickers.get_ticker_subs(ticker)
+                    except KeyError:  # not in the subscription list
+                        continue
+                    else:
+                        if subs['TickerUpdate']['Active']:
+                            self.updateSummaryState.on_change(update)
 
     # -------------------------------------
     # Private Channels Supplemental Methods

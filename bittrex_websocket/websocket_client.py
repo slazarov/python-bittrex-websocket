@@ -817,7 +817,6 @@ class BittrexSocket(WebSocket):
         """
         if self._is_close_me():
             return
-        ticker_updates = {}
         if 'Deltas' in msg:
             for update in msg['Deltas']:
                 try:

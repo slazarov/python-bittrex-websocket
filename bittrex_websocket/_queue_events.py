@@ -4,7 +4,7 @@
 # bittrex_websocket/_queue_events.py
 # Stanislav Lazarov
 
-from ._auxiliary import Ticker, Common
+from ._auxiliary import Ticker, find_ticker_type
 from .constants import *
 
 
@@ -49,7 +49,7 @@ class SubscribeEvent(Event):
 
     def __init__(self, tickers, conn_object, sub_type):
         self.type = 'SUBSCRIBE'
-        self.tickers = Common.find_ticker_type(tickers)
+        self.tickers = find_ticker_type(tickers)
         self.conn_object = conn_object
         self.server_callback = None
         self.server_callback_no_payload = None

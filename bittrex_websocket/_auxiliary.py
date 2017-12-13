@@ -40,7 +40,7 @@ class Ticker(object):
         return d
 
     def enable(self, tickers, sub_type, conn_id):
-        tickers_list = Common.find_ticker_type(tickers)
+        tickers_list = find_ticker_type(tickers)
         for ticker in tickers_list:
             self._add(ticker)
             self._change_sub_state(ticker, sub_type, SUB_STATE_ON)
@@ -48,7 +48,7 @@ class Ticker(object):
             logging.debug('[Subscription][{}][{}]: Enabled.'.format(sub_type, ticker))
 
     def disable(self, tickers, sub_type, conn_id):
-        tickers_list = Common.find_ticker_type(tickers)
+        tickers_list = find_ticker_type(tickers)
         for ticker in tickers_list:
             self._change_sub_state(ticker, sub_type, SUB_STATE_OFF)
             self._assign_conn_id(ticker, sub_type, None)
@@ -111,7 +111,7 @@ class Ticker(object):
             self.list[ticker][sub_type]['ConnectionID'] = None
 
     def set_book_depth(self, tickers, book_depth):
-        tickers_list = Common.find_ticker_type(tickers)
+        tickers_list = find_ticker_type(tickers)
         for ticker in tickers_list:
             timeout = 0
             while timeout < 40:
@@ -247,12 +247,10 @@ class BittrexConnection(object):
         return d
 
 
-class Common(object):
-    @staticmethod
-    def find_ticker_type(tickers):
-        ticker_type = type(tickers)
-        if ticker_type is list:
-            return tickers
-        elif ticker_type is str:
-            tickers = [tickers]
-            return tickers
+def find_ticker_type(tickers):
+    ticker_type = type(tickers)
+    if ticker_type is list:
+        return tickers
+    elif ticker_type is str:
+        tickers = [tickers]
+        return tickers

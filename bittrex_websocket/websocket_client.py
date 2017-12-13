@@ -6,10 +6,9 @@
 
 from __future__ import print_function
 
-import logging
 from abc import ABCMeta, abstractmethod
 from threading import Thread, current_thread
-from time import sleep, time
+from time import time
 
 import cfscrape
 from events import Events
@@ -17,7 +16,7 @@ from requests.exceptions import HTTPError, MissingSchema
 from signalr import Connection
 from websocket import WebSocketConnectionClosedException
 
-from ._auxiliary import Ticker, BittrexConnection, Common
+from ._auxiliary import *
 from ._queue_events import SubscribeInternalEvent, ConnectEvent, DisconnectEvent, SubscribeEvent, UnsubscribeEvent, \
     SnapshotEvent
 from .constants import *
@@ -700,7 +699,7 @@ class BittrexSocket(WebSocket):
         :type tickers: []
         """
         if tickers is not None:
-            t = Common.find_ticker_type(tickers)
+            t = find_ticker_type(tickers)
         else:
             t = self.tickers.list.keys()
         states = {}

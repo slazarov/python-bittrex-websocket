@@ -800,11 +800,10 @@ class BittrexSocket(WebSocket):
         if self.tickers.get_sub_state(ticker, SUB_TYPE_ORDERBOOK) is True:
             self.order_queue.put(msg)
         if subs[SUB_TYPE_ORDERBOOKUPDATE]['Active'] is True:
-            if msg['Buys'] or msg['Sells']:
-                d = dict(self._create_base_layout(msg),
-                         **{'bids': msg['Buys'],
-                            'asks': msg['Sells']})
-                self.orderbook_update.on_change(d)
+            d = dict(self._create_base_layout(msg),
+                     **{'bids': msg['Buys'],
+                        'asks': msg['Sells']})
+            self.orderbook_update.on_change(d)
         if subs[SUB_TYPE_TRADES]['Active'] is True:
             if msg['Fills']:
                 d = dict(self._create_base_layout(msg),
@@ -894,14 +893,6 @@ class BittrexSocket(WebSocket):
                         0:book_depth]
                     # Add nounce unix timestamp
                     self.order_books[pair_name]['timestamp'] = time()
-
-                    # tick = 'BTC-ETH'
-                    # if order_data['MarketName'] == tick:
-                    #     buys = self.order_book[tick]['Buys'][0]
-                    #     buys2 = self.order_book[tick]['Buys'][1]
-                    #     sells = self.order_book[tick]['Sells'][0]
-                    #     sells2 = self.order_book[tick]['Sells'][1]
-                    #     print(str(buys) + str(buys2) + str(sells) + str(sells2))
             return True
         # The next nounce will trigger a sync.
         elif nounce_diff == 0:

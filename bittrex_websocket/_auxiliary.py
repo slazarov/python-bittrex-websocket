@@ -11,6 +11,33 @@ from uuid import uuid4
 from .constants import *
 
 
+# =========================
+# Classless/General Methods
+# =========================
+
+def setup_stream_logger(name):
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.DEBUG)
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.DEBUG)
+    formatter = logging.Formatter(logging.BASIC_FORMAT)
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    return logger
+
+
+def find_ticker_type(tickers):
+    ticker_type = type(tickers)
+    if ticker_type is list:
+        return tickers
+    elif ticker_type is str:
+        tickers = [tickers]
+        return tickers
+
+
+log = setup_stream_logger(__name__)
+
+
 class Ticker(object):
     def __init__(self):
         self.list = {}
@@ -45,14 +72,14 @@ class Ticker(object):
             self._add(ticker)
             self._change_sub_state(ticker, sub_type, SUB_STATE_ON)
             self._assign_conn_id(ticker, sub_type, conn_id)
-            logging.debug('[Subscription][{}][{}]: Enabled.'.format(sub_type, ticker))
+            log.debug('[Subscription][{}][{}]: Enabled.'.format(sub_type, ticker))
 
     def disable(self, tickers, sub_type, conn_id):
         tickers_list = find_ticker_type(tickers)
         for ticker in tickers_list:
             self._change_sub_state(ticker, sub_type, SUB_STATE_OFF)
             self._assign_conn_id(ticker, sub_type, None)
-            logging.debug('[Subscription][{}][{}]: Disabled.'.format(sub_type, ticker))
+            log.debug('[Subscription][{}][{}]: Disabled.'.format(sub_type, ticker))
 
     def _add(self, ticker):
         if ticker not in self.list:
@@ -120,12 +147,12 @@ class Ticker(object):
                     timeout += 0.5
                 else:
                     self.list[ticker]['OrderBook']['OrderBookDepth'] = book_depth
-                    logging.debug(
+                    log.debug(
                         '[Subscription][{}][{}]: Order book depth set to {}.'.format(SUB_TYPE_ORDERBOOK, ticker,
                                                                                      book_depth))
                     break
             else:
-                logging.debug(
+                log.debug(
                     '[Subscription][{}][{}]: Failed to set order book depth to {}.'.format(SUB_TYPE_ORDERBOOK,
                                                                                            ticker,
                                                                                            book_depth))
@@ -245,12 +272,3 @@ class BittrexConnection(object):
         d = {CALLBACK_EXCHANGE_DELTAS: False,
              CALLBACK_SUMMARY_DELTAS: False}
         return d
-
-
-def find_ticker_type(tickers):
-    ticker_type = type(tickers)
-    if ticker_type is list:
-        return tickers
-    elif ticker_type is str:
-        tickers = [tickers]
-        return tickers

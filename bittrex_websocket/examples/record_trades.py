@@ -33,6 +33,8 @@ def main():
 
     # Create the socket instance
     ws = MySocket()
+    # Enable logging
+    ws.enable_log()
     # Define tickers
     tickers = ['BTC-ETH', 'BTC-XMR']
     # Subscribe to trade fills

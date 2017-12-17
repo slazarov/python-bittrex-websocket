@@ -291,7 +291,9 @@ ws.subscribe_to_ticker_update(tickers)
 ws.disconnect()
 ```
 
-Let's get some 'practical' examples. Check examples folder.
+Let's get some 'practical' examples.
+
+Note that with library updates, the methods and data structure might change, so check the examples folder for the most up to date examples.
 #### Record trades
 ```python
 from __future__ import print_function
@@ -313,20 +315,23 @@ def main():
             # Ping
             print('[Trades]: {}'.format(msg['ticker']))
 
+    # Create the socket instance
     ws = MySocket()
+    # Enable logging
+    ws.enable_log()
+    # Define tickers
     tickers = ['BTC-ETH', 'BTC-XMR']
+    # Subscribe to trade fills
     ws.subscribe_to_trades(tickers)
 
     while len(set(tickers) - set(ws.trade_history)) > 0:
         sleep(1)
-        continue
     else:
         for ticker in ws.trade_history.keys():
             print('Printing {} trade history.'.format(ticker))
             for trade in ws.trade_history[ticker]:
                 print(trade)
         ws.disconnect()
-
 
 if __name__ == "__main__":
     main()
@@ -338,13 +343,19 @@ from __future__ import print_function
 from time import sleep
 from bittrex_websocket.websocket_client import BittrexSocket
 
+
 def main():
     class MySocket(BittrexSocket):
         def on_orderbook(self, msg):
             print('[OrderBook]: {}'.format(msg['MarketName']))
 
+    # Create the socket instance
     ws = MySocket()
+    # Enable logging
+    ws.enable_log()
+    # Define tickers
     tickers = ['BTC-ETH', 'BTC-NEO', 'BTC-ZEC', 'ETH-NEO', 'ETH-ZEC']
+    # Subscribe to live order book
     ws.subscribe_to_orderbook(tickers)
 
     while True:
@@ -366,6 +377,41 @@ def main():
         else:
             sleep(1)
 
+if __name__ == "__main__":
+    main()
+```
+#### Ticker general information update
+```python
+from __future__ import print_function
+from time import sleep
+from bittrex_websocket.websocket_client import BittrexSocket
+
+
+def main():
+    class MySocket(BittrexSocket):
+        def on_open(self):
+            self.ticker_updates_container = {}
+
+        def on_ticker_update(self, msg):
+            name = msg['MarketName']
+            if name not in self.ticker_updates_container:
+                self.ticker_updates_container[name] = msg
+                print('Just received ticker update for {}.'.format(name))
+
+    # Create the socket instance
+    ws = MySocket()
+    # Enable logging
+    ws.enable_log()
+    # Define tickers
+    tickers = ['BTC-ETH', 'BTC-NEO', 'BTC-ZEC', 'ETH-NEO', 'ETH-ZEC']
+    # Subscribe to ticker information
+    ws.subscribe_to_ticker_update(tickers)
+
+    while len(ws.ticker_updates_container) < len(tickers):
+        sleep(1)
+    else:
+        print('We have received updates for all tickers. Closing...')
+        ws.disconnect()
 
 if __name__ == "__main__":
     main()

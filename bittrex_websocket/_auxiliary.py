@@ -5,15 +5,18 @@
 # Stanislav Lazarov
 
 import logging
-from time import sleep
 from uuid import uuid4
 
-from .constants import *
+from time import sleep
 
+from .constants import *
 
 # =========================
 # Classless/General Methods
 # =========================
+
+logger = logging.getLogger(__name__)
+
 
 def find_ticker_type(tickers):
     ticker_type = type(tickers)
@@ -22,9 +25,6 @@ def find_ticker_type(tickers):
     elif ticker_type is str:
         tickers = [tickers]
         return tickers
-
-
-logger = logging.getLogger(__name__)
 
 
 class Ticker(object):
@@ -61,14 +61,14 @@ class Ticker(object):
             self._add(ticker)
             self._change_sub_state(ticker, sub_type, SUB_STATE_ON)
             self._assign_conn_id(ticker, sub_type, conn_id)
-            logger.debug('[Subscription][{}][{}]: Enabled.'.format(sub_type, ticker))
+            logger.info('[Subscription][{}][{}]: Enabled.'.format(sub_type, ticker))
 
     def disable(self, tickers, sub_type, conn_id):
         tickers_list = find_ticker_type(tickers)
         for ticker in tickers_list:
             self._change_sub_state(ticker, sub_type, SUB_STATE_OFF)
             self._assign_conn_id(ticker, sub_type, None)
-            logger.debug('[Subscription][{}][{}]: Disabled.'.format(sub_type, ticker))
+            logger.info('[Subscription][{}][{}]: Disabled.'.format(sub_type, ticker))
 
     def _add(self, ticker):
         if ticker not in self.list:
@@ -136,12 +136,12 @@ class Ticker(object):
                     timeout += 0.5
                 else:
                     self.list[ticker]['OrderBook']['OrderBookDepth'] = book_depth
-                    logger.debug(
+                    logger.info(
                         '[Subscription][{}][{}]: Order book depth set to {}.'.format(SUB_TYPE_ORDERBOOK, ticker,
                                                                                      book_depth))
                     break
             else:
-                logger.debug(
+                logger.info(
                     '[Subscription][{}][{}]: Failed to set order book depth to {}.'.format(SUB_TYPE_ORDERBOOK,
                                                                                            ticker,
                                                                                            book_depth))

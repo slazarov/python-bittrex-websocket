@@ -76,10 +76,9 @@ unsubscribe_from_ticker_update
 ```
 
 ### Currently in development
+* Socket reconnection handling
 * Test scripts
-* Better documentation
 * Code cleanup, optimization
-* Better error handling
 * Lots of stuff, waiting for suggestions
 
 ### Done

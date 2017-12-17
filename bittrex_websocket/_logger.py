@@ -40,7 +40,7 @@ def _get_file_handler(file_name):
 
 
 def _get_formatter():
-    msg_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'  # , "%Y-%m-%d %H:%M:%S"
+    msg_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     date_format = '%Y-%m-%d %H:%M:%S'
     formatter = logging.Formatter(msg_format, date_format)
     return formatter

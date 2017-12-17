@@ -158,6 +158,7 @@ class WebSocket(object):
         :param tickers: The specific ticker(s) and it's order book sync state you are interested in.
         :type tickers: []
         """
+        raise NotImplementedError("Should implement get_order_book_sync_state()")
 
     @abstractmethod
     def disconnect(self):
@@ -165,6 +166,25 @@ class WebSocket(object):
         Disconnects the connections and stops the websocket instance.
         """
         raise NotImplementedError("Should implement disconnect()")
+
+    @staticmethod
+    @abstractmethod
+    def enable_log(file_name=None):
+        """
+        Enables logging.
+
+        :param file_name: The name of the log file, located in the same directory as the executing script.
+        :type file_name: str
+        """
+        raise NotImplementedError("Should implement enable_log()")
+
+    @staticmethod
+    @abstractmethod
+    def disable_log():
+        """
+        Disables logging.
+        """
+        raise NotImplementedError("Should implement disable_log()")
 
 
 class BittrexSocket(WebSocket):
@@ -726,10 +746,18 @@ class BittrexSocket(WebSocket):
 
     @staticmethod
     def enable_log(file_name=None):
+        """
+        Enables logging.
+        :param file_name: The name of the log file, located in the same directory as the executing script.
+        :type file_name: str
+        """
         add_stream_logger(file_name=file_name)
 
     @staticmethod
     def disable_log():
+        """
+        Disables logging.
+        """
         remove_stream_logger()
 
     def _create_btrx_connection(self, tickers):

@@ -230,7 +230,18 @@ pip install git+https://github.com/slazarov/python-bittrex-websocket.git
         Disconnects the connections and stops the websocket instance.
         """
 
+    def enable_log(file_name=None):
+        """
+        Enables logging.
 
+        :param file_name: The name of the log file, located in the same directory as the executing script.
+        :type file_name: str
+        """
+
+    def disable_log():
+        """
+        Disables logging.
+        """
 ```
 
 # Message channels
@@ -363,7 +374,9 @@ if __name__ == "__main__":
 # Change log
 0.0.5
 * Fixed [Issue #9](https://github.com/slazarov/python-bittrex-websocket/issues/9) relating to `subscribe_to_orderbook_update` handling in internal method `_on_tick_update`
-* Added customer logger as per [PR #10](https://github.com/slazarov/python-bittrex-websocket/issues/10) and [Issue #8](https://github.com/slazarov/python-bittrex-websocket/issues/8) in order to avoid conflicts with other `basicConfig` setups
+* Added custom logger as per [PR #10](https://github.com/slazarov/python-bittrex-websocket/issues/10) and [Issue #8](https://github.com/slazarov/python-bittrex-websocket/issues/8) in order to avoid conflicts with other `basicConfig` setups
+  * Added two new methods `enable_log` and `disable_log`. Check [Other Methods](#other-methods).
+  * Logging is now disabled on startup. You have to enable it.
 * **Experimental**: Calling `subscribe_to_ticker_update` without a specified ticker subscribes to all tickers in the message stream ([Issue #4](https://github.com/slazarov/python-bittrex-websocket/issues/4)).
 * Minor code optimizations (removed unnecessary class Common)
 

@@ -417,6 +417,9 @@ if __name__ == "__main__":
     main()
 ```
 # Change log
+0.0.5.1
+* Disabled cfscrape version requirement.
+
 0.0.5
 * Fixed [Issue #9](https://github.com/slazarov/python-bittrex-websocket/issues/9) relating to `subscribe_to_orderbook_update` handling in internal method `_on_tick_update`
 * Added custom logger as per [PR #10](https://github.com/slazarov/python-bittrex-websocket/issues/10) and [Issue #8](https://github.com/slazarov/python-bittrex-websocket/issues/8) in order to avoid conflicts with other `basicConfig` setups

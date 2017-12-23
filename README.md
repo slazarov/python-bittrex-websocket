@@ -418,7 +418,7 @@ if __name__ == "__main__":
 ```
 # Change log
 0.0.5.1
-* Disabled cfscrape version requirement.
+* Updated cfscrape minimum version requirement.
 
 0.0.5
 * Fixed [Issue #9](https://github.com/slazarov/python-bittrex-websocket/issues/9) relating to `subscribe_to_orderbook_update` handling in internal method `_on_tick_update`

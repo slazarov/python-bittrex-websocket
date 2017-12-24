@@ -161,7 +161,6 @@ def subscribe_to_ticker_update(self, tickers):
     :param tickers: A list of tickers you are interested in.
     :type tickers: []
     """
-
 ```
 
 #### Unsubscribe Methods

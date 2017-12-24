@@ -101,173 +101,177 @@ I am only adding this as a precaution, in most case you will not have to do anyt
 ```python
 pip install bittrex-websocket
 ```
-#### Github (most recent)
+#### Github (master)
 ```python
 pip install git+https://github.com/slazarov/python-bittrex-websocket.git
+```
+#### Github (work in progress branch)
+```python
+pip install git+https://github.com/slazarov/python-bittrex-websocket.git@next-version-number
 ```
 # Methods
 #### Subscribe Methods
 ```python
-    def subscribe_to_orderbook(self, tickers, book_depth=10):
-        """
-        Subscribe and maintain the live order book for a set of ticker(s).
+def subscribe_to_orderbook(self, tickers, book_depth=10):
+    """
+    Subscribe and maintain the live order book for a set of ticker(s).
 
-        :param tickers: A list of tickers you are interested in.
-        :type tickers: []
-        :param book_depth: The desired depth of the order book to be maintained.
-        :type book_depth: int
-        """
+    :param tickers: A list of tickers you are interested in.
+    :type tickers: []
+    :param book_depth: The desired depth of the order book to be maintained.
+    :type book_depth: int
+    """
 
-    def subscribe_to_orderbook_update(self, tickers):
-        """
-        Subscribe to order book updates for a set of ticker(s).
+def subscribe_to_orderbook_update(self, tickers):
+    """
+    Subscribe to order book updates for a set of ticker(s).
 
-        :param tickers: A list of tickers you are interested in.
-        :type tickers: []
-        """
+    :param tickers: A list of tickers you are interested in.
+    :type tickers: []
+    """
 
-    def subscribe_to_trades(self, tickers):
-        """
-        Subscribe and receive tick data(executed trades) for a set of ticker(s).
+def subscribe_to_trades(self, tickers):
+    """
+    Subscribe and receive tick data(executed trades) for a set of ticker(s).
 
-        :param tickers: A list of tickers you are interested in.
-        :type tickers: []
-        """
+    :param tickers: A list of tickers you are interested in.
+    :type tickers: []
+    """
 
-    def subscribe_to_ticker_update(self, tickers):
-        """
-        Subscribe and receive general data updates for a set of ticker(s). Example output:
+def subscribe_to_ticker_update(self, tickers):
+    """
+    Subscribe and receive general data updates for a set of ticker(s). Example output:
 
-        {
-            'MarketName': 'BTC-ADA',
-            'High': 7.65e-06,
-            'Low': 4.78e-06,
-            'Volume': 1352355429.5288217,
-            'Last': 7.2e-06,
-            'BaseVolume': 7937.59243908,
-            'TimeStamp': '2017-11-28T15:02:17.7',
-            'Bid': 7.2e-06,
-            'Ask': 7.21e-06,
-            'OpenBuyOrders': 4452,
-            'OpenSellOrders': 3275,
-            'PrevDay': 5.02e-06,
-            'Created': '2017-09-29T07:01:58.873'
-        }
+    {
+        'MarketName': 'BTC-ADA',
+        'High': 7.65e-06,
+        'Low': 4.78e-06,
+        'Volume': 1352355429.5288217,
+        'Last': 7.2e-06,
+        'BaseVolume': 7937.59243908,
+        'TimeStamp': '2017-11-28T15:02:17.7',
+        'Bid': 7.2e-06,
+        'Ask': 7.21e-06,
+        'OpenBuyOrders': 4452,
+        'OpenSellOrders': 3275,
+        'PrevDay': 5.02e-06,
+        'Created': '2017-09-29T07:01:58.873'
+    }
 
-        :param tickers: A list of tickers you are interested in.
-        :type tickers: []
-        """
+    :param tickers: A list of tickers you are interested in.
+    :type tickers: []
+    """
 
 ```
 
 #### Unsubscribe Methods
 
 ```python
-    def unsubscribe_to_orderbook(self, tickers):
-        """
-        Unsubscribe from real time order for specific set of ticker(s).
+def unsubscribe_to_orderbook(self, tickers):
+    """
+    Unsubscribe from real time order for specific set of ticker(s).
 
-        :param tickers: A list of tickers you are interested in.
-        :type tickers: []
-        """
+    :param tickers: A list of tickers you are interested in.
+    :type tickers: []
+    """
 
-    def unsubscribe_to_orderbook_update(self, tickers):
-        """
-        Unsubscribe from order book updates for a set of ticker(s).
+def unsubscribe_to_orderbook_update(self, tickers):
+    """
+    Unsubscribe from order book updates for a set of ticker(s).
 
-        :param tickers: A list of tickers you are interested in.
-        :type tickers: []
-        """
+    :param tickers: A list of tickers you are interested in.
+    :type tickers: []
+    """
 
-    def unsubscribe_to_trades(self, tickers):
-        """
-        Unsubscribe from receiving tick data(executed trades) for a set of ticker(s)
+def unsubscribe_to_trades(self, tickers):
+    """
+    Unsubscribe from receiving tick data(executed trades) for a set of ticker(s)
 
-        :param tickers: A list of tickers you are interested in.
-        :type tickers: []
-        """
+    :param tickers: A list of tickers you are interested in.
+    :type tickers: []
+    """
 
-    def unsubscribe_to_ticker_update(self, tickers):
-        """
-        Unsubscribe from receiving general data updates for a set of ticker(s).
+def unsubscribe_to_ticker_update(self, tickers):
+    """
+    Unsubscribe from receiving general data updates for a set of ticker(s).
 
-        :param tickers: A list of tickers you are interested in.
-        :type tickers: []
-        """
+    :param tickers: A list of tickers you are interested in.
+    :type tickers: []
+    """
 ```
 
 #### Other Methods
 
 ```python
-    def get_order_book(self, ticker=None):
-        """
-        Returns the most recently updated order book for the specific ticker.
-        If no ticker is specified, returns a dictionary with the order books of
-        all subscribed tickers.
+def get_order_book(self, ticker=None):
+    """
+    Returns the most recently updated order book for the specific ticker.
+    If no ticker is specified, returns a dictionary with the order books of
+    all subscribed tickers.
 
-        :param ticker: The specific ticker you want the order book for.
-        :type ticker: str
-        """
+    :param ticker: The specific ticker you want the order book for.
+    :type ticker: str
+    """
 
-    def get_order_book_sync_state(self, tickers=None):
-        """
-        Returns the sync state of the order book for the specific ticker(s).
-        If no ticker is specified, returns the state for all tickers.
-        The sync states are:
+def get_order_book_sync_state(self, tickers=None):
+    """
+    Returns the sync state of the order book for the specific ticker(s).
+    If no ticker is specified, returns the state for all tickers.
+    The sync states are:
 
-            Not initiated = 0
-            Invoked, not synced = 1
-            Received, not synced, not processing = 2
-            Received, synced, processing = 3
+        Not initiated = 0
+        Invoked, not synced = 1
+        Received, not synced, not processing = 2
+        Received, synced, processing = 3
 
-        :param tickers: The specific ticker(s) and it's order book sync state you are interested in.
-        :type tickers: []
-        """
+    :param tickers: The specific ticker(s) and it's order book sync state you are interested in.
+    :type tickers: []
+    """
 
-    def disconnect(self):
-        """
-        Disconnects the connections and stops the websocket instance.
-        """
+def disconnect(self):
+    """
+    Disconnects the connections and stops the websocket instance.
+    """
 
-    def enable_log(file_name=None):
-        """
-        Enables logging.
+def enable_log(file_name=None):
+    """
+    Enables logging.
 
-        :param file_name: The name of the log file, located in the same directory as the executing script.
-        :type file_name: str
-        """
+    :param file_name: The name of the log file, located in the same directory as the executing script.
+    :type file_name: str
+    """
 
-    def disable_log():
-        """
-        Disables logging.
-        """
+def disable_log():
+    """
+    Disables logging.
+    """
 ```
 
 # Message channels
 The websocket clients starts a separate thread upon initialization with further subthreads for each connection (currently 20 tickers per connection). There are several methods which could be overwritten. Please check the actual code for further information and examples.
 ```python
-    def on_open(self):
-        # Called before initiating the first websocket connection
-        # Use it when you want to add some opening logic.
+def on_open(self):
+    # Called before initiating the first websocket connection
+    # Use it when you want to add some opening logic.
 
-    def on_close(self):
-        # Called before closing the websocket instance.
-        # Use it when you want to add any closing logic.
+def on_close(self):
+    # Called before closing the websocket instance.
+    # Use it when you want to add any closing logic.
 
-    def on_error(self, error):
-        # Error handler
+def on_error(self, error):
+    # Error handler
 
-    def on_orderbook(self, msg):
-        # The main channel of subscribe_to_orderbook().
+def on_orderbook(self, msg):
+    # The main channel of subscribe_to_orderbook().
 
-    def on_orderbook_update(self, msg):
-        # The main channel of subscribe_to_orderbook_update().
+def on_orderbook_update(self, msg):
+    # The main channel of subscribe_to_orderbook_update().
 
-    def on_trades(self, msg):
-        # The main channel of subscribe_to_trades().
+def on_trades(self, msg):
+    # The main channel of subscribe_to_trades().
 
-    def on_ticker_update(self, msg):
-        # The main channel of subscribe_to_ticker_update().
+def on_ticker_update(self, msg):
+    # The main channel of subscribe_to_ticker_update().
 ```
 
 # Sample usage

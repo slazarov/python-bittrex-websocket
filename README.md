@@ -32,6 +32,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE
 * [Message channels](#message-channels)
 * [Sample usage](#sample-usage)
 * [Change log](#change-log)
+* [Other libraries](#other-libraries)
 * [Support](#support)
 
 # Testing needed
@@ -445,6 +446,13 @@ The message now contains a single ticker instead of a dictionary of all subscrib
 * Added additional connection URLs
 
 0.0.1 - Initial release on github.
+
+# Other libraries
+**[Python Bittrex Autosell](https://github.com/slazarov/python-bittrex-autosell)**
+
+Python CLI tool to auto sell coins on Bittrex.
+
+It is used in the cases when you want to auto sell a specific coin for another, but there is no direct market, so you have to use an intermediate market.
 
 # Support
 If you find this package helpful and would like to support it, you can do it through here:

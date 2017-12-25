@@ -446,6 +446,13 @@ The message now contains a single ticker instead of a dictionary of all subscrib
 
 0.0.1 - Initial release on github.
 
+# Other libraries
+**[Python Bittrex Autosell](https://github.com/slazarov/python-bittrex-autosell)**
+
+Python CLI tool to auto sell coins on Bittrex.
+
+It is used in the cases when you want to auto sell a specific coin for another, but there is no direct market, so you have to use an intermediate market.
+
 # Support
 If you find this package helpful and would like to support it, you can do it through here:
 

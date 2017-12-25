@@ -32,6 +32,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE
 * [Message channels](#message-channels)
 * [Sample usage](#sample-usage)
 * [Change log](#change-log)
+* [Other libraries](#other-libraries)
 * [Support](#support)
 
 # Testing needed

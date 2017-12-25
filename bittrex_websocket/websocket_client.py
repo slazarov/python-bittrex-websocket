@@ -9,12 +9,13 @@ from __future__ import print_function
 import logging
 from abc import ABCMeta, abstractmethod
 from threading import Thread, current_thread
+from time import sleep, time
 
 import cfscrape
 from events import Events
 from requests.exceptions import HTTPError, MissingSchema
 from signalr import Connection
-from time import sleep, time
+from urllib3.contrib.pyopenssl import SocketError
 from websocket import WebSocketConnectionClosedException
 
 from ._auxiliary import BittrexConnection
@@ -205,9 +206,6 @@ class BittrexSocket(WebSocket):
         self.connections = {}
         self.order_books = {}
         self.threads = {}
-        self.url = ['https://socket-stage.bittrex.com/signalr',
-                    'https://socket.bittrex.com/signalr',
-                    'https://socket-beta.bittrex.com/signalr']
         self.tickers = Ticker()
         self.max_tickers_per_conn = 20
         self._start_main_thread()
@@ -279,29 +277,50 @@ class BittrexSocket(WebSocket):
         :param conn_obj: The Bittrex connection object
         :type conn_obj: BittrexConnection
         """
+
+        def get_url(url_list):
+            result = next(url_list)
+            return result
+
+        urls = ['https://socket-stage.bittrex.com/signalr',
+                'https://socket.bittrex.com/signalr']
+        url_gen = (url for url in urls)
+        url = next(url_gen)
         conn, corehub = conn_obj.conn, conn_obj.corehub
-        for url in self.url:
+
+        while True:
             try:
-                logger.info('Trying to establish connection to Bittrex through {}.'.format(url))
-                conn.url = url
-                conn.start()
-                conn_obj.activate()
-                logger.info('Connection to Bittrex established successfully through {}.'.format(url))
-                # Add handlers
-                corehub.client.on('updateExchangeState', self._on_tick_update)
-                corehub.client.on('updateSummaryState', self._on_ticker_update)
-                conn.wait(120000)
-                # When we purposely close the connection, the script will exit conn.wait()
-                # so we need to inform the script that it should not try to reconnect.
-                if conn_obj.close_me is True:
-                    return
-            except HTTPError:
-                logger.info('Failed to establish connection through {}'.format(url))
-            except MissingSchema:
-                logger.info('Invalid URL: {}'.format(url))
-        else:
-            logger.info('Failed to establish connection to Bittrex through all supplied URLS. Closing the socket')
-            return
+                try:
+                    conn.url = url
+                    logger.info('Trying to establish connection to Bittrex through {}.'.format(conn.url))
+                    conn.start()
+                    conn_obj.activate()
+                    logger.info('Connection to Bittrex established successfully through {}.'.format(conn.url))
+                    # Add handlers
+                    corehub.client.on('updateExchangeState', self._on_tick_update)
+                    corehub.client.on('updateSummaryState', self._on_ticker_update)
+                    conn.wait(20)
+
+                    # When we purposely close the connection, the script will exit conn.wait()
+                    # so we need to inform the script that it should not try to reconnect.
+                    if conn_obj.close_me is True:
+                        return
+                except HTTPError:
+                    logger.error('Failed to establish connection through {}'.format(conn.url))
+                    url = get_url(url_gen)
+                except MissingSchema:
+                    logger.error('Invalid URL: {}'.format(conn.url))
+                    url = get_url(url_gen)
+                except WebSocketConnectionClosedException:
+                    print('Init_connection_WebSocketConnectionClosedException')
+                except SocketError:
+                    logger.error(
+                        'Connection timeout for connection {}. Please check your internet connection is on.'.format(
+                            conn.url))
+                    url = get_url(url_gen)
+            except StopIteration:
+                logger.error('Failed to establish connection to Bittrex through all supplied URLS. Closing the socket.')
+                return
 
     def _handle_disconnect(self, disconn_event):
         """
@@ -353,7 +372,7 @@ class BittrexSocket(WebSocket):
             sleep(0.2)
             timeout += 1
             if timeout >= 100:
-                logger.info(
+                logger.error(
                     'Failed to subscribe [{}][{}] from connection {} after 20 seconds. '
                     'The connection is probably down.'.format(sub_type, tickers, conn.id))
                 return

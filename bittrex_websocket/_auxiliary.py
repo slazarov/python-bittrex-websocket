@@ -5,9 +5,8 @@
 # Stanislav Lazarov
 
 import logging
-from uuid import uuid4
-
 from time import sleep
+from uuid import uuid4
 
 from .constants import *
 
@@ -59,15 +58,17 @@ class Ticker(object):
         tickers_list = find_ticker_type(tickers)
         for ticker in tickers_list:
             self._add(ticker)
-            self._change_sub_state(ticker, sub_type, SUB_STATE_ON)
+            self.change_sub_state(ticker, sub_type, SUB_STATE_ON)
             self._assign_conn_id(ticker, sub_type, conn_id)
             logger.info('[Subscription][{}][{}]: Enabled.'.format(sub_type, ticker))
 
-    def disable(self, tickers, sub_type, conn_id):
+    def disable(self, tickers, sub_type):
         tickers_list = find_ticker_type(tickers)
         for ticker in tickers_list:
-            self._change_sub_state(ticker, sub_type, SUB_STATE_OFF)
+            self.change_sub_state(ticker, sub_type, SUB_STATE_OFF)
             self._assign_conn_id(ticker, sub_type, None)
+            if sub_type == SUB_TYPE_ORDERBOOK:
+                self.reset_snapshot(ticker)
             logger.info('[Subscription][{}][{}]: Disabled.'.format(sub_type, ticker))
 
     def _add(self, ticker):
@@ -81,17 +82,18 @@ class Ticker(object):
         except KeyError:
             raise KeyError('No such ticker found in the list.')
 
-    def _change_sub_state(self, ticker, sub_type, sub_state):
+    def change_sub_state(self, ticker, sub_type, sub_state):
         """
         Changes the state of the specific subscription for the given ticker.
 
         :param ticker: Ticker name
         :type ticker: str
-        :param sub_type: Subscription type; Options: OrderBook, OrderBookUpdate, Trades
+        :param sub_type: SUB_TYPE_ORDERBOOK; SUB_TYPE_ORDERBOOKUPDATE; SUB_TYPE_TRADES; SUB_TYPE_TICKERUPDATE
         :type sub_type: string
         :param sub_state: Subscription state; Active == True, Inactive == False
         :type sub_state: bool
         """
+
         if sub_type not in self.sub_types:
             raise SystemError(INVALID_SUB)
         if type(sub_state) is not bool:
@@ -99,6 +101,17 @@ class Ticker(object):
         self.list[ticker][sub_type]['Active'] = sub_state
 
     def get_sub_state(self, ticker, sub_type):
+        """
+        Check if the subscription for the specific ticker is in/active.
+
+        :param ticker: Ticker name
+        :type ticker: str
+        :param sub_type: SUB_TYPE_ORDERBOOK; SUB_TYPE_ORDERBOOKUPDATE; SUB_TYPE_TRADES; SUB_TYPE_TICKERUPDATE
+        :type sub_type: string
+        :return: True(==SUB_STATE_ON) for Active; False(==SUB_STATE_OFF) for Inactive
+        :rtype: bool
+        """
+
         if ticker in self.list:
             return self.list[ticker][sub_type]['Active']
         else:
@@ -135,7 +148,7 @@ class Ticker(object):
                     sleep(0.5)
                     timeout += 0.5
                 else:
-                    self.list[ticker]['OrderBook']['OrderBookDepth'] = book_depth
+                    self.list[ticker][SUB_TYPE_ORDERBOOK]['OrderBookDepth'] = book_depth
                     logger.info(
                         '[Subscription][{}][{}]: Order book depth set to {}.'.format(SUB_TYPE_ORDERBOOK, ticker,
                                                                                      book_depth))
@@ -145,6 +158,9 @@ class Ticker(object):
                     '[Subscription][{}][{}]: Failed to set order book depth to {}.'.format(SUB_TYPE_ORDERBOOK,
                                                                                            ticker,
                                                                                            book_depth))
+
+    def get_book_depth(self, ticker):
+        return self.list[ticker][SUB_TYPE_ORDERBOOK]['OrderBookDepth']
 
     def set_snapshot_state(self, ticker, state):
         self.list[ticker]['OrderBook']['SnapshotState'] = state
@@ -213,6 +229,32 @@ class Ticker(object):
                     conn['{} count'.format(cb)] = 0
         return conns
 
+    def get_subscription_events(self, conn_id):
+        cmds = []
+        for ticker in self.list.keys():
+            for sub_type in self.list[ticker]:
+                try:
+                    sub_state = self.get_sub_state(ticker, sub_type)
+                except TypeError:
+                    # The dict contains 'Name' as well as subscription types, skip if 'Name'
+                    continue
+                else:
+                    if sub_state is SUB_STATE_ON:
+                        if self.get_sub_state(ticker, sub_type) is SUB_STATE_ON:
+                            if self.get_conn_id(ticker, sub_type) == conn_id:
+                                if sub_type is SUB_TYPE_ORDERBOOK:
+                                    cmds.append({
+                                        'sub_type': SUB_TYPE_ORDERBOOK,
+                                        'ticker': ticker,
+                                        'depth': self.get_book_depth(ticker)
+                                    })
+                                else:
+                                    cmds.append({
+                                        'sub_type': sub_type,
+                                        'ticker': ticker,
+                                    })
+        return cmds
+
     def sort_by_sub_types(self):
         # TO BE IMPLEMENTED WHEN THE OCCASION RISES
         pass
@@ -228,6 +270,14 @@ class Ticker(object):
 
     def get_nounces(self, ticker):
         return self.list[ticker][SUB_TYPE_ORDERBOOK]['NouncesRcvd']
+
+    def reset_snapshot(self, ticker):
+        self.list[ticker][SUB_TYPE_ORDERBOOK]['NouncesRcvd'] = 0
+        self.list[ticker][SUB_TYPE_ORDERBOOK]['SnapshotState'] = 0
+        self.list[ticker][SUB_TYPE_ORDERBOOK]['InternalQueue'] = None
+        logger.info(
+            '[Subscription][{}][{}]: Snapshot nounce, state and internal queue are reset.'.format(SUB_TYPE_ORDERBOOK,
+                                                                                                  ticker))
 
 
 class BittrexConnection(object):

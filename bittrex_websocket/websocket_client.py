@@ -13,10 +13,7 @@ from time import sleep, time
 
 import cfscrape
 from events import Events
-from requests.exceptions import HTTPError, MissingSchema
 from signalr import Connection
-from urllib3.contrib.pyopenssl import SocketError
-from websocket import WebSocketConnectionClosedException
 
 from ._auxiliary import BittrexConnection
 from ._logger import add_stream_logger, remove_stream_logger
@@ -285,13 +282,12 @@ class BittrexSocket(WebSocket):
         urls = ['https://socket-stage.bittrex.com/signalr',
                 'https://socket.bittrex.com/signalr']
         url_gen = (url for url in urls)
-        url = next(url_gen)
         conn, corehub = conn_obj.conn, conn_obj.corehub
 
         while True:
             try:
                 try:
-                    conn.url = url
+                    conn.url = get_url(url_gen)
                     logger.info('Trying to establish connection to Bittrex through {}.'.format(conn.url))
                     conn.start()
                     conn_obj.activate()
@@ -299,7 +295,7 @@ class BittrexSocket(WebSocket):
                     # Add handlers
                     corehub.client.on('updateExchangeState', self._on_tick_update)
                     corehub.client.on('updateSummaryState', self._on_ticker_update)
-                    conn.wait(20)
+                    conn.wait(12000)
 
                     # When we purposely close the connection, the script will exit conn.wait()
                     # so we need to inform the script that it should not try to reconnect.
@@ -307,17 +303,24 @@ class BittrexSocket(WebSocket):
                         return
                 except HTTPError:
                     logger.error('Failed to establish connection through {}'.format(conn.url))
-                    url = get_url(url_gen)
+                    conn.url = get_url(url_gen)
                 except MissingSchema:
                     logger.error('Invalid URL: {}'.format(conn.url))
-                    url = get_url(url_gen)
+                    conn.url = get_url(url_gen)
                 except WebSocketConnectionClosedException:
-                    print('Init_connection_WebSocketConnectionClosedException')
+                    raise NotImplementedError('Please report error to '
+                                              'https://github.com/slazarov/python-bittrex-websocket, '
+                                              'Error:Init_connection_WebSocketConnectionClosedException')
+                except WebSocketBadStatusException:
+                    # This should be related to Cloudflare.
+                    raise NotImplementedError('Please report error to '
+                                              'https://github.com/slazarov/python-bittrex-websocket, '
+                                              'Error:WebSocketBadStatusException')
                 except SocketError:
                     logger.error(
                         'Connection timeout for connection {}. Please check your internet connection is on.'.format(
                             conn.url))
-                    url = get_url(url_gen)
+                    conn.url = get_url(url_gen)
             except StopIteration:
                 logger.error('Failed to establish connection to Bittrex through all supplied URLS. Closing the socket.')
                 return
@@ -426,8 +429,13 @@ class BittrexSocket(WebSocket):
         :type unsub_event: UnsubscribeEvent
         """
         ticker, sub_type, conn_id = unsub_event.ticker, unsub_event.sub_type, unsub_event.conn_id
-        self.tickers.disable(ticker, sub_type, conn_id)
+        self.tickers.disable(ticker, sub_type)
+        # Wait for the subscription to deactivate
+        # In the case of sync loss, the subscription will be deactivated earlier from _sync_order_book
+        while self.tickers.get_sub_state(ticker, sub_type) is SUB_STATE_ON:
+            sleep(0.5)
         self._is_no_subs_active()
+        # self.tickers.remove(ticker)
 
     def _handle_get_snapshot(self, snapshot_event):
         """
@@ -452,6 +460,46 @@ class BittrexSocket(WebSocket):
                 print('Failed to invoke snapshot query')
         while self.tickers.get_snapshot_state(ticker) is not SNAPSHOT_ON:
             sleep(0.5)
+
+    def _handle_reconnect(self, ticker, sub_type, book_depth=None):
+        # thread = Thread()
+
+        # Send unsubscribe calls
+        # if sub_type == SUB_TYPE_ORDERBOOK:
+        #     # self.unsubscribe_to_orderbook(ticker)
+        #     thread = Thread(target=self.unsubscribe_to_orderbook, args=(ticker,))
+        # elif sub_type == SUB_TYPE_ORDERBOOKUPDATE:
+        #     # self.unsubscribe_to_orderbook_update(ticker)
+        #     thread = Thread(target=self.unsubscribe_to_orderbook_update, args=(ticker,))
+        # elif sub_type == SUB_TYPE_TRADES:
+        #     # self.unsubscribe_to_trades(ticker)
+        #     thread = Thread(target=self.unsubscribe_to_trades, args=(ticker,))
+        # elif sub_type == SUB_TYPE_TICKERUPDATE:
+        #     # self.unsubscribe_to_ticker_update(ticker)
+        #     thread = Thread(target=self.unsubscribe_to_ticker_update, args=(ticker,))
+
+        if sub_type == SUB_TYPE_ORDERBOOK:
+            self.unsubscribe_to_orderbook(ticker)
+        elif sub_type == SUB_TYPE_ORDERBOOKUPDATE:
+            self.unsubscribe_to_orderbook_update(ticker)
+        elif sub_type == SUB_TYPE_TRADES:
+            self.unsubscribe_to_trades(ticker)
+        elif sub_type == SUB_TYPE_TICKERUPDATE:
+            self.unsubscribe_to_ticker_update(ticker)
+
+        # thread.daemon = True
+        # thread.start()
+        # thread.join()
+
+        # Send subscribe calls
+        if sub_type == SUB_TYPE_ORDERBOOK:
+            self.subscribe_to_orderbook(ticker, book_depth)
+        elif sub_type == SUB_TYPE_ORDERBOOKUPDATE:
+            self.subscribe_to_orderbook_update(ticker)
+        elif sub_type == SUB_TYPE_TRADES:
+            self.subscribe_to_trades(ticker)
+        elif sub_type == SUB_TYPE_TICKERUPDATE:
+            self.subscribe_to_ticker_update(ticker)
 
     def _is_first_run(self, tickers, sub_type):
         # Check if the websocket has been initiated already or if it's the first run.
@@ -812,7 +860,7 @@ class BittrexSocket(WebSocket):
         if 'R' in msg and type(msg['R']) is not bool:
             if 'MarketName' in msg['R'] and msg['R']['MarketName'] is None:
                 for ticker in self.tickers.list.values():
-                    if ticker['OrderBook']['SnapshotState'] == SNAPSHOT_SENT:
+                    if ticker[SUB_TYPE_ORDERBOOK]['SnapshotState'] == SNAPSHOT_SENT:
                         msg['R']['MarketName'] = ticker['Name']
                         del msg['R']['Fills']
                         self.order_books[ticker['Name']] = msg['R']
@@ -838,6 +886,10 @@ class BittrexSocket(WebSocket):
             except queue.Empty:
                 sub['InternalQueue'] = None
                 return True
+            except AttributeError:
+                raise NotImplementedError('Please report error to '
+                                          'https://github.com/slazarov/python-bittrex-websocket, '
+                                          'Error:_transfer_backorder_queue:AttributeError')
             else:
                 if self._sync_order_book(ticker, e):
                     self.tickers.set_snapshot_state(ticker, SNAPSHOT_ON)
@@ -862,14 +914,14 @@ class BittrexSocket(WebSocket):
             return
         ticker = msg['MarketName']
         subs = self.tickers.get_ticker_subs(ticker)
-        if self.tickers.get_sub_state(ticker, SUB_TYPE_ORDERBOOK) is True:
+        if self.tickers.get_sub_state(ticker, SUB_TYPE_ORDERBOOK) is SUB_STATE_ON:
             self.order_queue.put(msg)
-        if subs[SUB_TYPE_ORDERBOOKUPDATE]['Active'] is True:
+        if self.tickers.get_sub_state(ticker, SUB_TYPE_ORDERBOOKUPDATE) is SUB_STATE_ON:
             d = dict(self._create_base_layout(msg),
                      **{'bids': msg['Buys'],
                         'asks': msg['Sells']})
             self.orderbook_update.on_change(d)
-        if subs[SUB_TYPE_TRADES]['Active'] is True:
+        if self.tickers.get_sub_state(ticker, SUB_TYPE_TRADES) is SUB_STATE_ON:
             if msg['Fills']:
                 d = dict(self._create_base_layout(msg),
                          **{'trades': msg['Fills']})
@@ -908,12 +960,12 @@ class BittrexSocket(WebSocket):
              }
         return d
 
-    def _sync_order_book(self, pair_name, order_data):
+    def _sync_order_book(self, ticker, order_data):
         # Syncs the order book for the pair, given the most recent data from the socket
-        book_depth = self.tickers.list[pair_name]['OrderBook']['OrderBookDepth']
-        nounce_diff = order_data['Nounce'] - self.order_books[pair_name]['Nounce']
+        book_depth = self.tickers.list[ticker][SUB_TYPE_ORDERBOOK]['OrderBookDepth']
+        nounce_diff = order_data['Nounce'] - self.order_books[ticker]['Nounce']
         if nounce_diff == 1:
-            self.order_books[pair_name]['Nounce'] = order_data['Nounce']
+            self.order_books[ticker]['Nounce'] = order_data['Nounce']
             # Start syncing
             for side in [['Buys', True], ['Sells', False]]:
                 made_change = False
@@ -922,7 +974,7 @@ class BittrexSocket(WebSocket):
                     # TYPE 0: New order entries at matching price
                     # -> ADD to order book
                     if item['Type'] == 0:
-                        self.order_books[pair_name][side[0]].append(
+                        self.order_books[ticker][side[0]].append(
                             {
                                 'Quantity': item['Quantity'],
                                 'Rate': item['Rate']
@@ -933,16 +985,16 @@ class BittrexSocket(WebSocket):
                     # -> DELETE from the order book
                     elif item['Type'] == 1:
                         for i, existing_order in enumerate(
-                                self.order_books[pair_name][side[0]]):
+                                self.order_books[ticker][side[0]]):
                             if existing_order['Rate'] == item['Rate']:
-                                del self.order_books[pair_name][side[0]][i]
+                                del self.order_books[ticker][side[0]][i]
                                 made_change = True
                                 break
 
                     # TYPE 2: Changed order entries at matching price (partial fills, cancellations)
                     # -> EDIT the order book
                     elif item['Type'] == 2:
-                        for existing_order in self.order_books[pair_name][side[0]]:
+                        for existing_order in self.order_books[ticker][side[0]]:
                             if existing_order['Rate'] == item['Rate']:
                                 existing_order['Quantity'] = item['Quantity']
                                 made_change = True
@@ -950,16 +1002,16 @@ class BittrexSocket(WebSocket):
 
                 if made_change:
                     # Sort by price, with respect to BUY(desc) or SELL(asc)
-                    self.order_books[pair_name][side[0]] = sorted(
-                        self.order_books[pair_name][side[0]],
+                    self.order_books[ticker][side[0]] = sorted(
+                        self.order_books[ticker][side[0]],
                         key=lambda k: k['Rate'],
                         reverse=side[1])
                     # Put depth to 10
-                    self.order_books[pair_name][side[0]] = \
-                        self.order_books[pair_name][side[0]][
+                    self.order_books[ticker][side[0]] = \
+                        self.order_books[ticker][side[0]][
                         0:book_depth]
                     # Add nounce unix timestamp
-                    self.order_books[pair_name]['timestamp'] = time()
+                    self.order_books[ticker]['timestamp'] = time()
             return True
         # The next nounce will trigger a sync.
         elif nounce_diff == 0:
@@ -968,7 +1020,13 @@ class BittrexSocket(WebSocket):
         elif nounce_diff < 0:
             return False
         else:
-            raise NotImplementedError("Implement nounce resync!")
+            # Experimental resync
+            logger.error(
+                '[Subscription][{}][{}]: Out of sync. Trying to resync...'.format(SUB_TYPE_ORDERBOOK, ticker))
+            # self.tickers.disable(ticker, SUB_TYPE_ORDERBOOK)
+            self.tickers.change_sub_state(ticker, SUB_TYPE_ORDERBOOK, SUB_STATE_OFF)
+            # self.control_queue.put(ResyncEvent(ticker, SUB_TYPE_ORDERBOOK, book_depth))
+            self._handle_reconnect([ticker], SUB_TYPE_ORDERBOOK, book_depth)
 
     def _is_close_me(self):
         thread_name = current_thread().getName()

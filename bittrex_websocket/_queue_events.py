@@ -123,7 +123,7 @@ class UnsubscribeEvent(Event):
 
 class SnapshotEvent(Event):
     """
-    Handles the event of invoking a snapshot request for a specific ticker
+    Handles the event of invoking a snapshot request for a specific ticker.
     """
 
     def __init__(self, ticker, conn_object):

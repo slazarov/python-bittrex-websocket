@@ -457,14 +457,3 @@ The message now contains a single ticker instead of a dictionary of all subscrib
 Python CLI tool to auto sell coins on Bittrex.
 
 It is used in the cases when you want to auto sell a specific coin for another, but there is no direct market, so you have to use an intermediate market.
-
-# Support
-If you find this package helpful and would like to support it, you can do it through here:
-
-
-| Coin          | Address                                    |
-| ------------- |:------------------------------------------:|
-| BTC           | 18n4eKg8PB1USs5f95MK34JA4KmaV1YhT2         |
-| ETH           | 0xf5a6431ac4acd8b1e5c8b56b9b45e04cdea20e6e |
-| LTC           | LZT8o523jwa8ZmgMjPLNMJeVeBnLuAvRvc         |
-| ZEC           | t1dhA8QqVsXHR8jGp34a1EY8mM7bZ9FjhTW        |

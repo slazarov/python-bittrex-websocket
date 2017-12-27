@@ -97,7 +97,7 @@ To successfully install the package the following dependencies must be met:
 * [signalr-client](https://github.com/TargetProcess/signalr-client-py)
   * g++, make
 
-I have added a Dockerfile for а quick setup. Please check the docker folder.
+I have added a Dockerfile for а quick setup. Please check the docker folder. The example.py is not always up to date.
 
 I am only adding this as a precaution, in most case you will not have to do anything at all as these are prepackaged with your python installation.
 

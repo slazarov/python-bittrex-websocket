@@ -88,6 +88,10 @@ unsubscribe_from_ticker_update
 
 # Dependencies
 To successfully install the package the following dependencies must be met:
+* [cfscrape](https://github.com/Anorov/cloudflare-scrape) requires [Node.js](https://nodejs.org/en/)
+
+    If you receive `Missing Node.js runtime. Node is required...` error as documented in [Issue #12](https://github.com/slazarov/python-bittrex-websocket/issues/12#issuecomment-354078963), you will have to install Node.js. This error usually shows for Windows users.
+
 * [requests[security]](https://github.com/requests/requests)
   * g++, make, libffi-dev, openssl-dev
 * [signalr-client](https://github.com/TargetProcess/signalr-client-py)

@@ -130,3 +130,26 @@ class SnapshotEvent(Event):
         self.type = 'SNAPSHOT'
         self.ticker = ticker
         self.conn_object = conn_object
+
+
+class IsFirstRunEvent():
+    """
+    Handles the event of checking if the websocket has been initiated already or if it's the first run.
+    """
+
+    def __init__(self, tickers, sub_type):
+        self.type = 'IS_FIRST_RUN'
+        self.tickers = tickers
+        self.sub_type = sub_type
+
+
+class IsRunningEvent():
+    """
+    Handles the event of analysing existing connections
+    and checking if they can be reused or a new has to be oned.
+    """
+
+    def __init__(self, tickers, sub_type):
+        self.type = 'IS_RUNNING'
+        self.tickers = tickers
+        self.sub_type = sub_type

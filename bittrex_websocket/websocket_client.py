@@ -201,7 +201,7 @@ class BittrexSocket(WebSocket):
         self.control_queue = queue.Queue()
         self.order_queue = None
         # Other
-        self.connections = {'Open': {}, 'Connection': {}}
+        self.connections = {}
         self.order_books = {}
         self.threads = {}
         self.tickers = Ticker()
@@ -253,6 +253,10 @@ class BittrexSocket(WebSocket):
                         self._handle_unsubscribe(control_event)
                     elif control_event.type == 'SNAPSHOT':
                         self._handle_get_snapshot(control_event)
+                    elif control_event.type == 'IS_FIRST_RUN':
+                        self._handle_is_first_run(control_event)
+                    elif control_event.type == 'IS_RUNNING':
+                        self._handle_is_running(control_event)
                     self.control_queue.task_done()
 
     def _handle_connect(self, conn_event):
@@ -265,7 +269,7 @@ class BittrexSocket(WebSocket):
         thread = Thread(target=self._init_connection, args=(conn_event.conn_obj,))
         self.threads[thread.getName()] = thread
         conn_event.conn_obj.assign_thread(thread.getName())
-        self.connections['Open'].update({conn_event.conn_obj.id: conn_event.conn_obj})
+        self.connections.update({conn_event.conn_obj.id: conn_event.conn_obj})
         thread.start()
 
     def _init_connection(self, conn_obj):
@@ -344,7 +348,7 @@ class BittrexSocket(WebSocket):
 
         # Find whether we are closing all connections or just one.
         if disconn_event.conn_object is None:
-            conns = self.connections['Open'].values()
+            conns = self.connections.values()
             msg = 'Sending a close signal to all connections.'
             flag = True
         else:
@@ -528,6 +532,31 @@ class BittrexSocket(WebSocket):
             event = UnsubscribeEvent(ticker, self.tickers, sub_type)
             self.control_queue.put(event)
 
+    def _handle_is_first_run(self, is_first_run_event):
+        tickers, sub_type = is_first_run_event.tickers, is_first_run_event.sub_type
+        if not self.tickers.list:
+            self.on_open()
+            self._subscribe_first_run(tickers, sub_type)
+        else:
+            self.control_queue.put(IsRunningEvent(tickers, sub_type))
+            # self._is_running(tickers, sub_type)
+
+    def _handle_is_running(self, is_running_event):
+        tickers, sub_type = is_running_event.tickers, is_running_event.sub_type
+        # Check for existing connections
+        if self.connections:
+            events = []
+            # Check for already existing tickers and enable the subscription before opening a new connection.
+            for ticker in tickers:
+                if self.tickers.get_sub_state(ticker, sub_type) is SUB_STATE_ON:
+                    logger.info('{} subscription is already enabled for {}. Ignoring...'.format(sub_type, ticker))
+                else:
+                    # Assign most suitable connection
+                    event = self._assign_conn(ticker, sub_type)
+                    events.append(event)
+            for event in events:
+                self.control_queue.put(event[0])
+
     def _get_snapshot(self, tickers):
         for ticker_name in tickers:
             # ticker_object = self.tickers.list[ticker_name]
@@ -535,7 +564,7 @@ class BittrexSocket(WebSocket):
             # Due to multithreading the connection might not be added to the connection list yet
             while True:
                 try:
-                    conn = self.connections['Open'][conn_id]
+                    conn = self.connections[conn_id]
                 except KeyError:
                     sleep(0.5)
                     conn_id = self.tickers.get_sub_type_conn_id(ticker_name, SUB_TYPE_ORDERBOOK)
@@ -573,19 +602,24 @@ class BittrexSocket(WebSocket):
 
     def _is_running(self, tickers, sub_type):
         # Check for existing connections
-        if self.connections['Open']:
+        if self.connections:
+            events = []
             # Check for already existing tickers and enable the subscription before opening a new connection.
             for ticker in tickers:
                 if self.tickers.get_sub_state(ticker, sub_type) is SUB_STATE_ON:
                     logger.info('{} subscription is already enabled for {}. Ignoring...'.format(sub_type, ticker))
                 else:
                     # Assign most suitable connection
-                    events = self._assign_conn(ticker, sub_type)
-                    for event in events:
-                        self.control_queue.put(event)
+                    event = self._assign_conn(ticker, sub_type)
+                    events.append(event)
+            for event in events:
+                self.control_queue.put(event)
 
     def _assign_conn(self, ticker, sub_type):
-        while self.control_queue.unfinished_tasks > 0:
+        # Changed 0 to 1 because '_is_running' was made into an event so
+        # essentially if 1 means that only '_is_running' is in the queue
+        # and we can proceed.
+        while self.control_queue.unfinished_tasks > 1:
             sleep(0.2)
         conns = self.tickers.sort_by_callbacks()
         d = {}
@@ -598,7 +632,7 @@ class BittrexSocket(WebSocket):
             if d:
                 min_tickers = min(d.keys())
                 conn_id = d[min_tickers]
-                return [SubscribeInternalEvent(ticker, self.connections['Open'][conn_id], sub_type)]
+                return [SubscribeInternalEvent(ticker, self.connections[conn_id], sub_type)]
             # No connection found with 'CALLBACK_SUMMARY_DELTAS'.
             # Get the connection with the lowest number of tickers.
             else:
@@ -606,7 +640,7 @@ class BittrexSocket(WebSocket):
                     d.update({conns[conn]['{} count'.format(CALLBACK_EXCHANGE_DELTAS)]: conn})
                 min_tickers = min(d.keys())
                 conn_id = d[min_tickers]
-                return [SubscribeEvent(ticker, self.connections['Open'][conn_id], sub_type)]
+                return [SubscribeEvent(ticker, self.connections[conn_id], sub_type)]
         else:
             # If 'EXCHANGE_DELTAS' is enabled for the ticker
             # and the specific connection, we just need to find the
@@ -615,7 +649,7 @@ class BittrexSocket(WebSocket):
             for conn in conns.keys():
                 try:
                     if ticker in conns[conn][CALLBACK_EXCHANGE_DELTAS]:
-                        return [SubscribeInternalEvent(ticker, self.connections['Open'][conn], sub_type)]
+                        return [SubscribeInternalEvent(ticker, self.connections[conn], sub_type)]
                 except KeyError:
                     break
             # If there is no active subscription for the ticker,
@@ -626,7 +660,7 @@ class BittrexSocket(WebSocket):
             min_tickers = min(d.keys())
             if min_tickers < self.max_tickers_per_conn:
                 conn_id = d[min_tickers]
-                return [SubscribeEvent(ticker, self.connections['Open'][conn_id], sub_type)]
+                return [SubscribeEvent(ticker, self.connections[conn_id], sub_type)]
             # The existing connections are in full capacity, create a new connection and subscribe.
             else:
                 obj = self._create_btrx_connection([ticker])[0]
@@ -641,11 +675,11 @@ class BittrexSocket(WebSocket):
             self.disconnect()
         else:
             # Check for non-active connections and close ONLY them.
-            non_active = set(self.connections['Open']) - set(active_conns)
+            non_active = set(self.connections) - set(active_conns)
             if non_active:
                 for conn in non_active:
                     logger.info('Connection {} has no active subscriptions. Closing it...'.format(conn))
-                    conn_object = self.connections['Open'][conn]
+                    conn_object = self.connections[conn]
                     disconnect_event = DisconnectEvent(conn_object)
                     self.control_queue.put(disconnect_event)
 
@@ -668,8 +702,9 @@ class BittrexSocket(WebSocket):
         """
         sub_type = SUB_TYPE_ORDERBOOK
         self._is_order_queue()
-        if self._is_first_run(tickers, sub_type) is False:
-            self._is_running(tickers, sub_type)
+        self.control_queue.put(IsFirstRunEvent(tickers, sub_type))
+        # if self._is_first_run(tickers, sub_type) is False:
+        #     self._is_running(tickers, sub_type)
         self.tickers.set_book_depth(tickers, book_depth)
 
     def subscribe_to_orderbook_update(self, tickers):
@@ -680,8 +715,9 @@ class BittrexSocket(WebSocket):
         :type tickers: []
         """
         sub_type = SUB_TYPE_ORDERBOOKUPDATE
-        if self._is_first_run(tickers, sub_type) is False:
-            self._is_running(tickers, sub_type)
+        self.control_queue.put(IsFirstRunEvent(tickers, sub_type))
+        # if self._is_first_run(tickers, sub_type) is False:
+        #     self._is_running(tickers, sub_type)
 
     def subscribe_to_trades(self, tickers):
         """
@@ -691,8 +727,9 @@ class BittrexSocket(WebSocket):
         :type tickers: []
         """
         sub_type = SUB_TYPE_TRADES
-        if self._is_first_run(tickers, sub_type) is False:
-            self._is_running(tickers, sub_type)
+        self.control_queue.put(IsFirstRunEvent(tickers, sub_type))
+        # if self._is_first_run(tickers, sub_type) is False:
+        #     self._is_running(tickers, sub_type)
 
     def subscribe_to_ticker_update(self, tickers=None):
         """
@@ -720,8 +757,9 @@ class BittrexSocket(WebSocket):
         if tickers is None:
             tickers = [ALL_TICKERS]
         sub_type = SUB_TYPE_TICKERUPDATE
-        if self._is_first_run(tickers, sub_type) is False:
-            self._is_running(tickers, sub_type)
+        self.control_queue.put(IsFirstRunEvent(tickers, sub_type))
+        # if self._is_first_run(tickers, sub_type) is False:
+        #     self._is_running(tickers, sub_type)
 
     # -------------------
     # Unsubscribe Methods
@@ -1047,9 +1085,9 @@ class BittrexSocket(WebSocket):
             return True
 
     def _return_conn_by_thread_name(self, thread_name):
-        for conn in self.connections['Open']:
-            if self.connections['Open'][conn].thread_name == thread_name:
-                return self.connections['Open'][conn]
+        for conn in self.connections:
+            if self.connections[conn].thread_name == thread_name:
+                return self.connections[conn]
 
     # ===============
     # Public Channels

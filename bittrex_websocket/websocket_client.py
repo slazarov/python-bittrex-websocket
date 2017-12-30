@@ -14,6 +14,7 @@ from time import sleep, time
 import cfscrape
 from events import Events
 from signalr import Connection
+from ._exceptions import *
 
 from ._auxiliary import BittrexConnection
 from ._logger import add_stream_logger, remove_stream_logger
@@ -200,7 +201,7 @@ class BittrexSocket(WebSocket):
         self.control_queue = queue.Queue()
         self.order_queue = None
         # Other
-        self.connections = {}
+        self.connections = {'Open': {}, 'Connection': {}}
         self.order_books = {}
         self.threads = {}
         self.tickers = Ticker()
@@ -264,7 +265,7 @@ class BittrexSocket(WebSocket):
         thread = Thread(target=self._init_connection, args=(conn_event.conn_obj,))
         self.threads[thread.getName()] = thread
         conn_event.conn_obj.assign_thread(thread.getName())
-        self.connections.update({conn_event.conn_obj.id: conn_event.conn_obj})
+        self.connections['Open'].update({conn_event.conn_obj.id: conn_event.conn_obj})
         thread.start()
 
     def _init_connection(self, conn_obj):
@@ -343,7 +344,7 @@ class BittrexSocket(WebSocket):
 
         # Find whether we are closing all connections or just one.
         if disconn_event.conn_object is None:
-            conns = self.connections.values()
+            conns = self.connections['Open'].values()
             msg = 'Sending a close signal to all connections.'
             flag = True
         else:
@@ -534,7 +535,7 @@ class BittrexSocket(WebSocket):
             # Due to multithreading the connection might not be added to the connection list yet
             while True:
                 try:
-                    conn = self.connections[conn_id]
+                    conn = self.connections['Open'][conn_id]
                 except KeyError:
                     sleep(0.5)
                     conn_id = self.tickers.get_sub_type_conn_id(ticker_name, SUB_TYPE_ORDERBOOK)
@@ -572,7 +573,7 @@ class BittrexSocket(WebSocket):
 
     def _is_running(self, tickers, sub_type):
         # Check for existing connections
-        if self.connections:
+        if self.connections['Open']:
             # Check for already existing tickers and enable the subscription before opening a new connection.
             for ticker in tickers:
                 if self.tickers.get_sub_state(ticker, sub_type) is SUB_STATE_ON:
@@ -597,7 +598,7 @@ class BittrexSocket(WebSocket):
             if d:
                 min_tickers = min(d.keys())
                 conn_id = d[min_tickers]
-                return [SubscribeInternalEvent(ticker, self.connections[conn_id], sub_type)]
+                return [SubscribeInternalEvent(ticker, self.connections['Open'][conn_id], sub_type)]
             # No connection found with 'CALLBACK_SUMMARY_DELTAS'.
             # Get the connection with the lowest number of tickers.
             else:
@@ -605,7 +606,7 @@ class BittrexSocket(WebSocket):
                     d.update({conns[conn]['{} count'.format(CALLBACK_EXCHANGE_DELTAS)]: conn})
                 min_tickers = min(d.keys())
                 conn_id = d[min_tickers]
-                return [SubscribeEvent(ticker, self.connections[conn_id], sub_type)]
+                return [SubscribeEvent(ticker, self.connections['Open'][conn_id], sub_type)]
         else:
             # If 'EXCHANGE_DELTAS' is enabled for the ticker
             # and the specific connection, we just need to find the
@@ -614,7 +615,7 @@ class BittrexSocket(WebSocket):
             for conn in conns.keys():
                 try:
                     if ticker in conns[conn][CALLBACK_EXCHANGE_DELTAS]:
-                        return [SubscribeInternalEvent(ticker, self.connections[conn], sub_type)]
+                        return [SubscribeInternalEvent(ticker, self.connections['Open'][conn], sub_type)]
                 except KeyError:
                     break
             # If there is no active subscription for the ticker,
@@ -625,7 +626,7 @@ class BittrexSocket(WebSocket):
             min_tickers = min(d.keys())
             if min_tickers < self.max_tickers_per_conn:
                 conn_id = d[min_tickers]
-                return [SubscribeEvent(ticker, self.connections[conn_id], sub_type)]
+                return [SubscribeEvent(ticker, self.connections['Open'][conn_id], sub_type)]
             # The existing connections are in full capacity, create a new connection and subscribe.
             else:
                 obj = self._create_btrx_connection([ticker])[0]
@@ -640,11 +641,11 @@ class BittrexSocket(WebSocket):
             self.disconnect()
         else:
             # Check for non-active connections and close ONLY them.
-            non_active = set(self.connections) - set(active_conns)
+            non_active = set(self.connections['Open']) - set(active_conns)
             if non_active:
                 for conn in non_active:
                     logger.info('Connection {} has no active subscriptions. Closing it...'.format(conn))
-                    conn_object = self.connections[conn]
+                    conn_object = self.connections['Open'][conn]
                     disconnect_event = DisconnectEvent(conn_object)
                     self.control_queue.put(disconnect_event)
 
@@ -1046,9 +1047,9 @@ class BittrexSocket(WebSocket):
             return True
 
     def _return_conn_by_thread_name(self, thread_name):
-        for conn in self.connections:
-            if self.connections[conn].thread_name == thread_name:
-                return self.connections[conn]
+        for conn in self.connections['Open']:
+            if self.connections['Open'][conn].thread_name == thread_name:
+                return self.connections['Open'][conn]
 
     # ===============
     # Public Channels

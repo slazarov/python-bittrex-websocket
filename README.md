@@ -425,6 +425,10 @@ if __name__ == "__main__":
     main()
 ```
 # Change log
+0.0.6
+* Reconnection - WIP
+* Fixed a bug when subscribing to multiple subscription types at once resulted in opening unnecessary connections even though there is sufficient capacity in the existing [Commit 7fd21c](https://github.com/slazarov/python-bittrex-websocket/commit/7fd21cad87a8bd7c88070bab0fd5774b0324332e)
+
 0.0.5.1
 * Updated cfscrape minimum version requirement ([Issue #12](https://github.com/slazarov/python-bittrex-websocket/issues/12)).
 

@@ -287,19 +287,19 @@ class BittrexSocket(WebSocket):
         urls = ['https://socket-stage.bittrex.com/signalr',
                 'https://socket.bittrex.com/signalr']
         url_gen = (url for url in urls)
-        conn, corehub, id = conn_obj.conn, conn_obj.corehub, conn_obj.id
+        conn, corehub, conn_id = conn_obj.conn, conn_obj.corehub, conn_obj.id
 
         while True:
             try:
                 try:
                     conn.url = get_url(url_gen)
                     logger.info(
-                        '[Connection][{}]: Trying to establish connection to Bittrex through {}.'.format(id,
+                        '[Connection][{}]: Trying to establish connection to Bittrex through {}.'.format(conn_id,
                                                                                                          conn.url))
                     conn.start()
                     conn_obj.activate()
                     logger.info(
-                        '[Connection][{}]: Connection to Bittrex established successfully through {}.'.format(id,
+                        '[Connection][{}]: Connection to Bittrex established successfully through {}.'.format(conn_id,
                                                                                                               conn.url))
                     # Add handlers
                     corehub.client.on('updateExchangeState', self._on_tick_update)
@@ -312,10 +312,10 @@ class BittrexSocket(WebSocket):
                         return
                 except HTTPError:
                     logger.error(
-                        '[Connection][{}]: Failed to establish connection through {}'.format(id, conn.url))
+                        '[Connection][{}]: Failed to establish connection through {}'.format(conn_id, conn.url))
                     conn.url = get_url(url_gen)
                 except MissingSchema:
-                    logger.error('[Connection][{}]: Invalid URL: {}'.format(id, conn.url))
+                    logger.error('[Connection][{}]: Invalid URL: {}'.format(conn_id, conn.url))
                     conn.url = get_url(url_gen)
                 except WebSocketConnectionClosedException:
                     raise NotImplementedError('Please report error to '
@@ -329,7 +329,7 @@ class BittrexSocket(WebSocket):
                 except SocketError:
                     logger.error(
                         '[Connection][{}]: Connection timeout for connection {}. Please check your internet connection is on.'.format(
-                            id,
+                            conn_id,
                             conn.url))
                     conn.url = get_url(url_gen)
             except StopIteration:

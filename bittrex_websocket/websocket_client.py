@@ -318,11 +318,13 @@ class BittrexSocket(WebSocket):
                     logger.error('[Connection][{}]: Invalid URL: {}'.format(conn_id, conn.url))
                     conn.url = get_url(url_gen)
                 except WebSocketConnectionClosedException:
+                    print(WebSocketConnectionClosedException)
                     raise NotImplementedError('Please report error to '
                                               'https://github.com/slazarov/python-bittrex-websocket, '
                                               'Error:Init_connection_WebSocketConnectionClosedException')
                 except WebSocketBadStatusException:
                     # This should be related to Cloudflare.
+                    print(WebSocketBadStatusException)
                     raise NotImplementedError('Please report error to '
                                               'https://github.com/slazarov/python-bittrex-websocket, '
                                               'Error:WebSocketBadStatusException')

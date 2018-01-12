@@ -61,7 +61,7 @@ I have been largely motivated by the following projects and people:
 # Road map
 
 ### Notices
-On 11 Jan 2018 the names of the unsubscribe methods will change from:
+Version 0.0.6 will change the names of the unsubscribe methods from:
 ```
 unsubscribe_to_orderbook
 unsubscribe_to_orderbook_update

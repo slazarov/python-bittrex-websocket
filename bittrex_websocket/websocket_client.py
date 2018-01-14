@@ -613,8 +613,10 @@ class BittrexSocket(WebSocket):
         # Changed 0 to 1 because '_is_running' was made into an event so
         # essentially if 1 means that only '_is_running' is in the queue
         # and we can proceed.
-        while self.control_queue.unfinished_tasks > 1:
-            sleep(0.2)
+        ### EXPERIMENTAL
+        # while self.control_queue.unfinished_tasks > 1:
+        #     sleep(0.2)
+        ###
         conns = self.tickers.sort_by_callbacks()
         d = {}
         if sub_type == SUB_TYPE_TICKERUPDATE:

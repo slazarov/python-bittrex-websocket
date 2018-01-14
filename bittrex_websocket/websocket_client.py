@@ -257,6 +257,8 @@ class BittrexSocket(WebSocket):
                         self._handle_is_first_run(control_event)
                     elif control_event.type == 'IS_RUNNING':
                         self._handle_is_running(control_event)
+                    elif control_event.type == 'RECONNECT':
+                        self._handle_reconnect(control_event)
                     self.control_queue.task_done()
 
     def _handle_connect(self, conn_event):
@@ -301,7 +303,6 @@ class BittrexSocket(WebSocket):
                     corehub.client.on('updateExchangeState', self._on_tick_update)
                     corehub.client.on('updateSummaryState', self._on_ticker_update)
                     conn.wait(12000)
-
                     # When we purposely close the connection, the script will exit conn.wait()
                     # so we need to inform the script that it should not try to reconnect.
                     if conn_obj.close_me is True:
@@ -435,7 +436,8 @@ class BittrexSocket(WebSocket):
         # In the case of sync loss, the subscription will be deactivated earlier from _sync_order_book
         while self.tickers.get_sub_state(ticker, sub_type) is SUB_STATE_ON:
             sleep(0.5)
-        self._is_no_subs_active()
+        if unsub_event.unsub_type is True:
+            self._is_no_subs_active()
         # self.tickers.remove(ticker)
 
     def _handle_get_snapshot(self, snapshot_event):
@@ -462,7 +464,7 @@ class BittrexSocket(WebSocket):
         while self.tickers.get_snapshot_state(ticker) is not SNAPSHOT_ON:
             sleep(0.5)
 
-    def _handle_reconnect(self, ticker, sub_type, book_depth=None):
+    def _handle_reconnect(self, reconnect_event):
         # thread = Thread()
 
         # Send unsubscribe calls
@@ -478,15 +480,17 @@ class BittrexSocket(WebSocket):
         # elif sub_type == SUB_TYPE_TICKERUPDATE:
         #     # self.unsubscribe_to_ticker_update(ticker)
         #     thread = Thread(target=self.unsubscribe_to_ticker_update, args=(ticker,))
+        ticker, sub_type, book_depth = reconnect_event.tickers, reconnect_event.sub_type, reconnect_event.book_depth
 
+        logger.info(MSG_INFO_RECONNECT.format(ticker, sub_type))
         if sub_type == SUB_TYPE_ORDERBOOK:
-            self.unsubscribe_to_orderbook(ticker)
+            self.unsubscribe_to_orderbook(ticker, False)
         elif sub_type == SUB_TYPE_ORDERBOOKUPDATE:
-            self.unsubscribe_to_orderbook_update(ticker)
+            self.unsubscribe_to_orderbook_update(ticker, False)
         elif sub_type == SUB_TYPE_TRADES:
-            self.unsubscribe_to_trades(ticker)
+            self.unsubscribe_to_trades(ticker, False)
         elif sub_type == SUB_TYPE_TICKERUPDATE:
-            self.unsubscribe_to_ticker_update(ticker)
+            self.unsubscribe_to_ticker_update(ticker, False)
 
         # thread.daemon = True
         # thread.start()
@@ -517,9 +521,9 @@ class BittrexSocket(WebSocket):
             self.control_queue.put(ConnectEvent(obj[1]))
             self.control_queue.put(SubscribeEvent(obj[0], obj[1], sub_type))
 
-    def _unsubscribe(self, tickers, sub_type):
+    def _unsubscribe(self, tickers, sub_type, unsub_type):
         for ticker in tickers:
-            event = UnsubscribeEvent(ticker, self.tickers, sub_type)
+            event = UnsubscribeEvent(ticker, self.tickers, sub_type, unsub_type)
             self.control_queue.put(event)
 
     def _handle_is_first_run(self, is_first_run_event):
@@ -647,19 +651,26 @@ class BittrexSocket(WebSocket):
             # an existing connection.
             for conn in conns.keys():
                 d.update({conns[conn]['{} count'.format(CALLBACK_EXCHANGE_DELTAS)]: conn})
-            min_tickers = min(d.keys())
-            if min_tickers < self.max_tickers_per_conn:
-                conn_id = d[min_tickers]
-                return [SubscribeEvent(ticker, self.connections[conn_id], sub_type)]
-            # The existing connections are in full capacity, create a new connection and subscribe.
-            else:
-                obj = self._create_btrx_connection([ticker])[0]
-                conn_event = ConnectEvent(obj[1])
-                sub_event = SubscribeEvent(ticker, obj[1], sub_type)
-                return [conn_event, sub_event]
+            # Quick and dirty method for when the connection has no assigned subscriptions to it.
+            try:
+                min_tickers = min(d.keys())
+                if min_tickers < self.max_tickers_per_conn:
+                    conn_id = d[min_tickers]
+                    return [SubscribeEvent(ticker, self.connections[conn_id], sub_type)]
+                # The existing connections are in full capacity, create a new connection and subscribe.
+                else:
+                    obj = self._create_btrx_connection([ticker])[0]
+                    conn_event = ConnectEvent(obj[1])
+                    sub_event = SubscribeEvent(ticker, obj[1], sub_type)
+                    return [conn_event, sub_event]
+            except ValueError:
+                # Pick the first connection
+                conn_id = list(self.connections)[0]
+                event = SubscribeEvent(ticker, self.connections[conn_id], sub_type)
+                return [event]
 
     def _is_no_subs_active(self):
-        # Close the websocket if no active connections remain.
+        # Close the websocket if no active subscriptions remain.
         active_conns = self.tickers.sort_by_callbacks()
         if not active_conns:
             self.disconnect()
@@ -755,7 +766,7 @@ class BittrexSocket(WebSocket):
     # Unsubscribe Methods
     # -------------------
 
-    def unsubscribe_to_orderbook(self, tickers):
+    def unsubscribe_to_orderbook(self, tickers, unsub_type=True):
         """
         Unsubscribe from real time order for specific set of ticker(s).
 
@@ -763,9 +774,9 @@ class BittrexSocket(WebSocket):
         :type tickers: []
         """
         sub_type = SUB_TYPE_ORDERBOOK
-        self._unsubscribe(tickers, sub_type)
+        self._unsubscribe(tickers, sub_type, unsub_type)
 
-    def unsubscribe_to_orderbook_update(self, tickers):
+    def unsubscribe_to_orderbook_update(self, tickers, unsub_type=True):
         """
         Unsubscribe from order book updates for a set of ticker(s).
 
@@ -773,9 +784,9 @@ class BittrexSocket(WebSocket):
         :type tickers: []
         """
         sub_type = SUB_TYPE_ORDERBOOKUPDATE
-        self._unsubscribe(tickers, sub_type)
+        self._unsubscribe(tickers, sub_type, unsub_type)
 
-    def unsubscribe_to_trades(self, tickers):
+    def unsubscribe_to_trades(self, tickers, unsub_type=True):
         """
         Unsubscribe from receiving tick data(executed trades) for a set of ticker(s)
 
@@ -783,9 +794,9 @@ class BittrexSocket(WebSocket):
         :type tickers: []
         """
         sub_type = SUB_TYPE_TRADES
-        self._unsubscribe(tickers, sub_type)
+        self._unsubscribe(tickers, sub_type, unsub_type)
 
-    def unsubscribe_to_ticker_update(self, tickers=None):
+    def unsubscribe_to_ticker_update(self, tickers=None, unsub_type=True):
         """
         Unsubscribe from receiving general data updates for a set of ticker(s).
 
@@ -795,7 +806,7 @@ class BittrexSocket(WebSocket):
         if tickers is None:
             tickers = [ALL_TICKERS]
         sub_type = SUB_TYPE_TICKERUPDATE
-        self._unsubscribe(tickers, sub_type)
+        self._unsubscribe(tickers, sub_type, unsub_type)
 
     # -------------
     # Other Methods
@@ -1061,7 +1072,9 @@ class BittrexSocket(WebSocket):
             # self.tickers.disable(ticker, SUB_TYPE_ORDERBOOK)
             self.tickers.change_sub_state(ticker, SUB_TYPE_ORDERBOOK, SUB_STATE_OFF)
             # self.control_queue.put(ResyncEvent(ticker, SUB_TYPE_ORDERBOOK, book_depth))
-            self._handle_reconnect([ticker], SUB_TYPE_ORDERBOOK, book_depth)
+            # self._handle_reconnect([ticker], SUB_TYPE_ORDERBOOK, book_depth)
+            event = ReconnectEvent([ticker], SUB_TYPE_ORDERBOOK, book_depth)
+            self.control_queue.put(event)
 
     def _is_close_me(self):
         thread_name = current_thread().getName()

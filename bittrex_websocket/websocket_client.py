@@ -293,14 +293,10 @@ class BittrexSocket(WebSocket):
             try:
                 try:
                     conn.url = get_url(url_gen)
-                    logger.info(
-                        '[Connection][{}]: Trying to establish connection to Bittrex through {}.'.format(conn_id,
-                                                                                                         conn.url))
+                    logger.info(MSG_INFO_CONN_ESTABLISHING.format(conn_id, conn.url))
                     conn.start()
                     conn_obj.activate()
-                    logger.info(
-                        '[Connection][{}]: Connection to Bittrex established successfully through {}.'.format(conn_id,
-                                                                                                              conn.url))
+                    logger.info(MSG_INFO_CONNECTED.format(conn_id, conn.url))
                     # Add handlers
                     corehub.client.on('updateExchangeState', self._on_tick_update)
                     corehub.client.on('updateSummaryState', self._on_ticker_update)
@@ -311,31 +307,23 @@ class BittrexSocket(WebSocket):
                     if conn_obj.close_me is True:
                         return
                 except HTTPError:
-                    logger.error(
-                        '[Connection][{}]: Failed to establish connection through {}'.format(conn_id, conn.url))
+                    logger.error(MSG_ERROR_CONN_HTTP.format(conn_id, conn.url))
                     conn.url = get_url(url_gen)
                 except MissingSchema:
-                    logger.error('[Connection][{}]: Invalid URL: {}'.format(conn_id, conn.url))
+                    logger.error(MSG_ERROR_CONN_MISSING_SCHEMA.format(conn_id, conn.url))
                     conn.url = get_url(url_gen)
                 except WebSocketConnectionClosedException:
                     print(WebSocketConnectionClosedException)
-                    raise NotImplementedError('Please report error to '
-                                              'https://github.com/slazarov/python-bittrex-websocket, '
-                                              'Error:Init_connection_WebSocketConnectionClosedException')
+                    raise ImportWarning(MSG_ERROR_SOCKET_WEBSOCKETCONNECTIONCLOSED)
                 except WebSocketBadStatusException:
                     # This should be related to Cloudflare.
                     print(WebSocketBadStatusException)
-                    raise NotImplementedError('Please report error to '
-                                              'https://github.com/slazarov/python-bittrex-websocket, '
-                                              'Error:WebSocketBadStatusException')
+                    raise ImportWarning(MSG_ERROR_SOCKET_WEBSOCKETBADSTATUS)
                 except SocketError:
-                    logger.error(
-                        '[Connection][{}]: Connection timeout for connection {}. Please check your internet connection is on.'.format(
-                            conn_id,
-                            conn.url))
+                    logger.error(MSG_ERROR_CONN_SOCKET.format(conn_id, conn.url))
                     conn.url = get_url(url_gen)
             except StopIteration:
-                logger.error('Failed to establish connection to Bittrex through all supplied URLS. Closing the socket.')
+                logger.error(MSG_ERROR_CONN_FAILURE.format(conn_id))
                 return
 
     def _handle_disconnect(self, disconn_event):

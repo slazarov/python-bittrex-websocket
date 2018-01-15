@@ -255,6 +255,26 @@ class Ticker(object):
                                     })
         return cmds
 
+    def sort_by_sub_state(self):
+        d = {}
+        for ticker in self.list.keys():
+            for sub_type in self.sub_types:
+                state = self.list[ticker][sub_type]['Active']
+                item = {state: {ticker: self.list[ticker][sub_type]}}
+                d.update(item)
+        return d
+
+    def sort_by_conn_id(self, conn_id):
+        d = {}
+        for ticker in self.list.keys():
+            for sub_type in self.sub_types:
+                if self.get_conn_id(ticker, sub_type) == conn_id:
+                    if sub_type in d:
+                        d[sub_type][ticker] = self.list[ticker][sub_type]
+                    else:
+                        d.update({sub_type: {ticker: self.list[ticker][sub_type]}})
+        return d
+
     def sort_by_sub_types(self):
         # TO BE IMPLEMENTED WHEN THE OCCASION RISES
         pass

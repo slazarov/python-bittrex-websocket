@@ -78,6 +78,7 @@ unsubscribe_from_ticker_update
 
 ### Currently in development
 * Socket reconnection handling
+    * Implemented but experimental
 * Test scripts
 * Code cleanup, optimization
 * Lots of stuff, waiting for suggestions
@@ -171,7 +172,7 @@ def subscribe_to_ticker_update(self, tickers):
 #### Unsubscribe Methods
 
 ```python
-def unsubscribe_to_orderbook(self, tickers):
+def unsubscribe_from_orderbook(self, tickers):
     """
     Unsubscribe from real time order for specific set of ticker(s).
 
@@ -179,7 +180,7 @@ def unsubscribe_to_orderbook(self, tickers):
     :type tickers: []
     """
 
-def unsubscribe_to_orderbook_update(self, tickers):
+def unsubscribe_from_orderbook_update(self, tickers):
     """
     Unsubscribe from order book updates for a set of ticker(s).
 
@@ -187,7 +188,7 @@ def unsubscribe_to_orderbook_update(self, tickers):
     :type tickers: []
     """
 
-def unsubscribe_to_trades(self, tickers):
+def unsubscribe_from_trades(self, tickers):
     """
     Unsubscribe from receiving tick data(executed trades) for a set of ticker(s)
 
@@ -195,7 +196,7 @@ def unsubscribe_to_trades(self, tickers):
     :type tickers: []
     """
 
-def unsubscribe_to_ticker_update(self, tickers):
+def unsubscribe_from_ticker_update(self, tickers):
     """
     Unsubscribe from receiving general data updates for a set of ticker(s).
 

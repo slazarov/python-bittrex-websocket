@@ -36,7 +36,7 @@ MSG_INFO_CONN_ESTABLISHING = _CONN_PREFIX + 'Trying to establish connection to B
 MSG_INFO_RECONNECT = _SUB_PREFIX + 'Initiating reconnection procedure.'
 MSG_INFO_CONN_INIT_RECONNECT = _CONN_PREFIX + 'Initiating reconnection procedure for all relevant subscriptions.'
 MSG_ERROR_CONN_SOCKET = _CONN_PREFIX + 'Timeout for url {}. Please check your internet connection is on.'
-MSG_ERROR_CONN_FAILURE = _CONN_PREFIX + 'Failed to establish connection to through supplied URLS. Leaving to ' \
+MSG_ERROR_CONN_FAILURE = _CONN_PREFIX + 'Failed to establish connection through supplied URLS. Leaving to ' \
                                         'watchdog...'
 MSG_ERROR_CONN_TIMEOUT = _CONN_PREFIX + 'Timeout for url {} after {} seconds.'
 MSG_INFO_CONNECTED = _CONN_PREFIX + 'Connection to Bittrex established successfully through {}'

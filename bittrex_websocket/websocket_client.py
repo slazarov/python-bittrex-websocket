@@ -287,7 +287,7 @@ class BittrexSocket(WebSocket):
             return result
 
         urls = ['https://socket-stage.bittrex.com/signalr',
-                'https://socket.bittrex.com/signalr1']
+                'https://socket.bittrex.com/signalr']
         url_gen = (url for url in urls)
         conn, corehub, conn_id = conn_obj.conn, conn_obj.corehub, conn_obj.id
 
@@ -302,7 +302,7 @@ class BittrexSocket(WebSocket):
                     # Add handlers
                     corehub.client.on('updateExchangeState', self._on_tick_update)
                     corehub.client.on('updateSummaryState', self._on_ticker_update)
-                    conn.wait(30)
+                    conn.wait(1200000)
                     # When we purposely close the connection, the script will exit conn.wait()
                     # so we need to inform the script that it should not try to reconnect.
                     if conn_obj.close_me is True:

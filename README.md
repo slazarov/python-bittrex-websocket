@@ -78,6 +78,7 @@ unsubscribe_from_ticker_update
 
 ### Currently in development
 * Socket reconnection handling
+    * Implemented but experimental
 * Test scripts
 * Code cleanup, optimization
 * Lots of stuff, waiting for suggestions
@@ -88,12 +89,16 @@ unsubscribe_from_ticker_update
 
 # Dependencies
 To successfully install the package the following dependencies must be met:
+* [cfscrape](https://github.com/Anorov/cloudflare-scrape) requires [Node.js](https://nodejs.org/en/)
+
+    If you receive `Missing Node.js runtime. Node is required...` error as documented in [Issue #12](https://github.com/slazarov/python-bittrex-websocket/issues/12#issuecomment-354078963), you will have to install Node.js. This error usually shows for Windows users.
+
 * [requests[security]](https://github.com/requests/requests)
   * g++, make, libffi-dev, openssl-dev
 * [signalr-client](https://github.com/TargetProcess/signalr-client-py)
   * g++, make
 
-I have added a Dockerfile for а quick setup. Please check the docker folder.
+I have added a Dockerfile for а quick setup. Please check the docker folder. The example.py is not always up to date.
 
 I am only adding this as a precaution, in most case you will not have to do anything at all as these are prepackaged with your python installation.
 
@@ -167,7 +172,7 @@ def subscribe_to_ticker_update(self, tickers):
 #### Unsubscribe Methods
 
 ```python
-def unsubscribe_to_orderbook(self, tickers):
+def unsubscribe_from_orderbook(self, tickers):
     """
     Unsubscribe from real time order for specific set of ticker(s).
 
@@ -175,7 +180,7 @@ def unsubscribe_to_orderbook(self, tickers):
     :type tickers: []
     """
 
-def unsubscribe_to_orderbook_update(self, tickers):
+def unsubscribe_from_orderbook_update(self, tickers):
     """
     Unsubscribe from order book updates for a set of ticker(s).
 
@@ -183,7 +188,7 @@ def unsubscribe_to_orderbook_update(self, tickers):
     :type tickers: []
     """
 
-def unsubscribe_to_trades(self, tickers):
+def unsubscribe_from_trades(self, tickers):
     """
     Unsubscribe from receiving tick data(executed trades) for a set of ticker(s)
 
@@ -191,7 +196,7 @@ def unsubscribe_to_trades(self, tickers):
     :type tickers: []
     """
 
-def unsubscribe_to_ticker_update(self, tickers):
+def unsubscribe_from_ticker_update(self, tickers):
     """
     Unsubscribe from receiving general data updates for a set of ticker(s).
 
@@ -421,6 +426,10 @@ if __name__ == "__main__":
     main()
 ```
 # Change log
+0.0.6
+* Reconnection - WIP
+* Fixed a bug when subscribing to multiple subscription types at once resulted in opening unnecessary connections even though there is sufficient capacity in the existing [Commit 7fd21c](https://github.com/slazarov/python-bittrex-websocket/commit/7fd21cad87a8bd7c88070bab0fd5774b0324332e)
+
 0.0.5.1
 * Updated cfscrape minimum version requirement ([Issue #12](https://github.com/slazarov/python-bittrex-websocket/issues/12)).
 
@@ -453,14 +462,3 @@ The message now contains a single ticker instead of a dictionary of all subscrib
 Python CLI tool to auto sell coins on Bittrex.
 
 It is used in the cases when you want to auto sell a specific coin for another, but there is no direct market, so you have to use an intermediate market.
-
-# Support
-If you find this package helpful and would like to support it, you can do it through here:
-
-
-| Coin          | Address                                    |
-| ------------- |:------------------------------------------:|
-| BTC           | 18n4eKg8PB1USs5f95MK34JA4KmaV1YhT2         |
-| ETH           | 0xf5a6431ac4acd8b1e5c8b56b9b45e04cdea20e6e |
-| LTC           | LZT8o523jwa8ZmgMjPLNMJeVeBnLuAvRvc         |
-| ZEC           | t1dhA8QqVsXHR8jGp34a1EY8mM7bZ9FjhTW        |

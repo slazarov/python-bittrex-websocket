@@ -94,11 +94,12 @@ class UnsubscribeEvent(Event):
     2.) Suppressing the messages
     """
 
-    def __init__(self, ticker, tickers_list, sub_type):
+    def __init__(self, ticker, tickers_list, sub_type, unsub_type=True):
         self.type = 'UNSUBSCRIBE'
         self.ticker = ticker
         self.sub_type = sub_type
         self.conn_id = self._get_conn_id(tickers_list)
+        self.unsub_type = unsub_type
 
     """
     In the future I plan to use the connection
@@ -123,10 +124,42 @@ class UnsubscribeEvent(Event):
 
 class SnapshotEvent(Event):
     """
-    Handles the event of invoking a snapshot request for a specific ticker
+    Handles the event of invoking a snapshot request for a specific ticker.
     """
 
     def __init__(self, ticker, conn_object):
         self.type = 'SNAPSHOT'
         self.ticker = ticker
         self.conn_object = conn_object
+
+
+class IsFirstRunEvent(Event):
+    """
+    Handles the event of checking if the websocket has been initiated already or if it's the first run.
+    """
+
+    def __init__(self, tickers, sub_type):
+        self.type = 'IS_FIRST_RUN'
+        self.tickers = tickers
+        self.sub_type = sub_type
+
+
+class IsRunningEvent(Event):
+    """
+    Handles the event of analysing existing connections
+    and checking if they can be reused or a new has to be opened.
+    """
+
+    def __init__(self, tickers, sub_type):
+        self.type = 'IS_RUNNING'
+        self.tickers = tickers
+        self.sub_type = sub_type
+
+
+class ReconnectEvent(Event):
+
+    def __init__(self, ticker, sub_type, book_depth=None):
+        self.type = 'RECONNECT'
+        self.tickers = ticker
+        self.sub_type = sub_type
+        self.book_depth = book_depth

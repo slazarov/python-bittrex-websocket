@@ -8,7 +8,7 @@ install_requires = \
         'signalr-client==0.0.7',
         'requests[security]==2.18.4',
         'Events==0.3',
-        'websocket-client==0.44.0'
+        'websocket-client==0.46.0'
     ]
 
 setup(

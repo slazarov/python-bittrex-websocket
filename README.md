@@ -426,6 +426,11 @@ if __name__ == "__main__":
     main()
 ```
 # Change log
+0.0.6.2
+* Every 5400s (1hr30) the script will force reconnection.
+* Every reconnection (including the above) will be done with a fresh cookie
+* Upon reconnection the script will check if the connection has been running for more than 600s (10mins). If it has been running for less it will use the backup url.
+
 0.0.6.1
 * Set websocket-client==0.46.0
 

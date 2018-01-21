@@ -282,47 +282,74 @@ class BittrexSocket(WebSocket):
         :type conn_obj: BittrexConnection
         """
 
+        def reload_generator():
+            gen = (url for url in urls)
+            return gen
+
         def get_url(url_list):
             result = next(url_list)
             return result
 
+        def is_next_url():
+            # (1) Reloads the url generator if n seconds have passed
+            # (2) Refreshes the session cookie.
+            # ---------------------------------------------------------------------------
+            # Nonlocal statement is not available in Python 2.X
+            # So we are using a workaround that imitates 'self' for nested functions.
+            # In this way we can edit variables that are external to the nested function.
+            # ---------------------------------------------------------------------------
+            if runtime is not None and time() - runtime > 600:
+                self_workaround['urls'] = reload_generator()
+            self_workaround['connection'] = self._create_cookie()
+            return self_workaround
+
         urls = ['https://socket-stage.bittrex.com/signalr',
                 'https://socket.bittrex.com/signalr']
-        url_gen = (url for url in urls)
         conn, corehub, conn_id = conn_obj.conn, conn_obj.corehub, conn_obj.id
-
+        self_workaround = {'urls': reload_generator(), 'connection': conn}
+        runtime = None
         while True:
             try:
                 try:
+                    # Get the variables from the dict into separate variables. 
+                    # Check is_next_url() for explanation
+                    url_gen = self_workaround['urls']
+                    conn = self_workaround['connection']
+                    # Actual part
                     conn.url = get_url(url_gen)
                     logger.info(MSG_INFO_CONN_ESTABLISHING.format(conn_id, conn.url))
                     conn.start()
+                    runtime = time()
                     conn_obj.activate()
                     logger.info(MSG_INFO_CONNECTED.format(conn_id, conn.url))
                     # Add handlers
                     corehub.client.on('updateExchangeState', self._on_tick_update)
                     corehub.client.on('updateSummaryState', self._on_ticker_update)
-                    conn.wait(1200000)
+                    conn.wait(5400)
                     # When we purposely close the connection, the script will exit conn.wait()
                     # so we need to inform the script that it should not try to reconnect.
                     if conn_obj.close_me is True:
                         return
+                    is_next_url()
                 except HTTPError:
+                    # Related to wrong url. Will be raised in case Bittrex changes it's url or you touched it!
                     logger.error(MSG_ERROR_CONN_HTTP.format(conn_id, conn.url))
-                    conn.url = get_url(url_gen)
+                    is_next_url()
                 except MissingSchema:
                     logger.error(MSG_ERROR_CONN_MISSING_SCHEMA.format(conn_id, conn.url))
-                    conn.url = get_url(url_gen)
+                    is_next_url()
                 except WebSocketConnectionClosedException:
-                    print(WebSocketConnectionClosedException)
+                    logger.error(WebSocketConnectionClosedException)
+                    is_next_url()
                     raise ImportWarning(MSG_ERROR_SOCKET_WEBSOCKETCONNECTIONCLOSED)
                 except WebSocketBadStatusException:
                     # This should be related to Cloudflare.
-                    print(WebSocketBadStatusException)
+                    logger.error(WebSocketBadStatusException)
+                    is_next_url()
                     raise ImportWarning(MSG_ERROR_SOCKET_WEBSOCKETBADSTATUS)
                 except SocketError:
                     logger.error(MSG_ERROR_CONN_SOCKET.format(conn_id, conn.url))
-                    conn.url = get_url(url_gen)
+                    is_next_url()
             except StopIteration:
                 logger.error(MSG_ERROR_CONN_FAILURE.format(conn_id))
                 self._empty_conn_id(conn_id)
@@ -600,21 +627,6 @@ class BittrexSocket(WebSocket):
                         self._sync_order_book(ticker, order_event)
                         self.orderbook_callback.on_change(self.order_books[ticker])
                     self.order_queue.task_done()
-
-    # def _is_running(self, tickers, sub_type):
-    #     # Check for existing connections
-    #     # if self.connections:
-    #     events = []
-    #     # Check for already existing tickers and enable the subscription before opening a new connection.
-    #     for ticker in tickers:
-    #         if self.tickers.get_sub_state(ticker, sub_type) is SUB_STATE_ON:
-    #             logger.info('{} subscription is already enabled for {}. Ignoring...'.format(sub_type, ticker))
-    #         else:
-    #             # Assign most suitable connection
-    #             event = self._assign_conn(ticker, sub_type)
-    #             events.append(event)
-    #     for event in events:
-    #         self.control_queue.put(event)
 
     def _assign_conn(self, ticker, sub_type):
         # Changed 0 to 1 because '_is_running' was made into an event so
@@ -903,12 +915,17 @@ class BittrexSocket(WebSocket):
         return results
 
     def _create_signalr_connection(self):
-        with cfscrape.create_scraper() as connection:
-            conn = Connection(None, connection)
+        conn = self._create_cookie()
         conn.received += self._on_debug
         conn.error += self.on_error
         corehub = conn.register_hub('coreHub')
         return BittrexConnection(conn, corehub)
+
+    @staticmethod
+    def _create_cookie():
+        with cfscrape.create_scraper() as connection:
+            conn = Connection(None, connection)
+        return conn
 
     def _is_orderbook_snapshot(self, msg):
         # Detect if the message contains order book snapshots and manipulate them.

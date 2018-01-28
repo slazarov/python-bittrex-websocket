@@ -4,6 +4,14 @@
 # bittrex_websocket/examples/order_book.py
 # Stanislav Lazarov
 
+# Sample script to show how the following methods work:
+#    • subscribe_to_orderbook()
+#    • get_order_book_sync_state()
+#    • get_order_book()
+# Overview:
+#   Subscribes to the order book for N tickers.
+#   When all the order books are synced, prints the Bid quotes for each ticker at depth level 0 and disconnects
+
 from __future__ import print_function
 
 from time import sleep
@@ -16,8 +24,13 @@ def main():
         def on_orderbook(self, msg):
             print('[OrderBook]: {}'.format(msg['MarketName']))
 
+    # Create the socket instance
     ws = MySocket()
+    # Enable logging
+    ws.enable_log('docker_log')
+    # Define tickers
     tickers = ['BTC-ETH', 'BTC-NEO', 'BTC-ZEC', 'ETH-NEO', 'ETH-ZEC']
+    # Subscribe to live order book
     ws.subscribe_to_orderbook(tickers)
 
     while True:

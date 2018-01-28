@@ -3,7 +3,8 @@ FROM python:3.6.3-alpine
 
 RUN   apk update && apk add --no-cache --virtual .build-deps \
       g++ make libffi-dev openssl-dev git  && \
-      pip install git+https://github.com/slazarov/python-bittrex-websocket.git && \
+      pip install 'cython>=0.25' && \
+      pip install git+https://github.com/slazarov/python-bittrex-websocket.git@ && \
       apk del .build-deps && \
       rm -rf /var/cache/apk/*
 

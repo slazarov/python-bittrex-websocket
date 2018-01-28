@@ -1,19 +1,20 @@
 #!/usr/bin/python
 
 from setuptools import setup, find_packages
-
+ 
 install_requires = \
     [
-        'cfscrape>=1.9.1',
+        'cfscrape>=1.9.2',
         'signalr-client==0.0.7',
         'requests[security]==2.18.4',
         'Events==0.3',
-        'websocket-client==0.46.0'
+        'websocket-client>=0.46.0',
+        'gevent>=1.3a1'
     ]
 
 setup(
     name='bittrex_websocket',
-    version='0.0.6.2',
+    version='0.0.6.2.2',
     author='Stanislav Lazarov',
     author_email='s.a.lazarov@gmail.com',
     license='MIT',

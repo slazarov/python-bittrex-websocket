@@ -426,6 +426,10 @@ if __name__ == "__main__":
     main()
 ```
 # Change log
+0.0.6.2.2
+* Update cfscrape>=1.9.2 and gevent>=1.3a1
+* Reorder imports in websocket_client to safeguard against SSL recursion errors.
+
 0.0.6.2
 * Every 5400s (1hr30) the script will force reconnection.
 * Every reconnection (including the above) will be done with a fresh cookie

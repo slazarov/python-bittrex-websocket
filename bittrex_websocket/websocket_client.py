@@ -937,9 +937,7 @@ class BittrexSocket(WebSocket):
                         self.order_books[ticker['Name']] = msg['R']
                         self.tickers.set_snapshot_state(ticker['Name'], SNAPSHOT_RCVD)
                         break
-                logger.info(
-                    '[Subscription][{}][{}]: Order book snapshot received.'.format(SUB_TYPE_ORDERBOOK,
-                                                                                   msg['R']['MarketName']))
+                logger.info(NSG_INFO_ORDER_BOOK_RECEIVED.format(SUB_TYPE_ORDERBOOK, msg['R']['MarketName']))
 
     def _init_backorder_queue(self, ticker, msg):
         sub = self.tickers.list[ticker][SUB_TYPE_ORDERBOOK]

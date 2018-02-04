@@ -217,6 +217,7 @@ class BittrexSocket(WebSocket):
         The websocket clients starts a separate thread upon
         initialization with further subthreads for each connection.
         """
+        self.on_open()
         thread = Thread(target=self._start_socket_control_queue)
         thread.daemon = True
         self.threads[thread.getName()] = thread
@@ -538,7 +539,6 @@ class BittrexSocket(WebSocket):
     def _is_first_run(self, tickers, sub_type):
         # Check if the websocket has been initiated already or if it's the first run.
         if not self.tickers.list:
-            self.on_open()
             self._subscribe_first_run(tickers, sub_type)
         else:
             return False
@@ -559,7 +559,6 @@ class BittrexSocket(WebSocket):
         tickers, sub_type = is_first_run_event.tickers, is_first_run_event.sub_type
         sub_states = self.tickers.sort_by_sub_state()
         if not sub_states:
-            self.on_open()
             self._subscribe_first_run(tickers, sub_type)
         elif len(sub_states) == 1 and False in sub_states:
             self._subscribe_first_run(tickers, sub_type)

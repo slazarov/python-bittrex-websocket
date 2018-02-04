@@ -503,8 +503,7 @@ class BittrexSocket(WebSocket):
             sleep(0.1)
         else:
             try:
-                logger.info('[Subscription][{}][{}]: Order book snapshot '
-                            'requested.'.format(SUB_TYPE_ORDERBOOK, ticker))
+                logger.info(NSG_INFO_ORDER_BOOK_REQUESTED.format(SUB_TYPE_ORDERBOOK, ticker))
                 conn.corehub.server.invoke(method, ticker)
                 self.tickers.set_snapshot_state(ticker, SNAPSHOT_SENT)
             except Exception as e:
@@ -982,7 +981,7 @@ class BittrexSocket(WebSocket):
         if self._is_close_me():
             return
         ticker = msg['MarketName']
-        subs = self.tickers.get_ticker_subs(ticker)
+        # subs = self.tickers.get_ticker_subs(ticker)
         if self.tickers.get_sub_state(ticker, SUB_TYPE_ORDERBOOK) is SUB_STATE_ON:
             self.order_queue.put(msg)
         if self.tickers.get_sub_state(ticker, SUB_TYPE_ORDERBOOKUPDATE) is SUB_STATE_ON:

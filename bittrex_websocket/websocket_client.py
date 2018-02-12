@@ -973,48 +973,63 @@ class BittrexSocket(WebSocket):
         Don't edit unless you know what you are doing.
         Redirect full order book snapshots to on_message
         """
-        if self._is_close_me():
-            return
-        self._is_orderbook_snapshot(kwargs)
+        try:
+            if self._is_close_me():
+                return
+            self._is_orderbook_snapshot(kwargs)
+        except Exception as e:
+            print(e)
+            print('Got this exception from _on_debug. This is bug testing. Please report to '
+                  'https://github.com/slazarov/python-bittrex-websocket with this message')
 
     def _on_tick_update(self, msg):
-        if self._is_close_me():
-            return
-        ticker = msg['MarketName']
-        # subs = self.tickers.get_ticker_subs(ticker)
-        if self.tickers.get_sub_state(ticker, SUB_TYPE_ORDERBOOK) is SUB_STATE_ON:
-            self.order_queue.put(msg)
-        if self.tickers.get_sub_state(ticker, SUB_TYPE_ORDERBOOKUPDATE) is SUB_STATE_ON:
-            d = dict(self._create_base_layout(msg),
-                     **{'bids': msg['Buys'],
-                        'asks': msg['Sells']})
-            self.orderbook_update.on_change(d)
-        if self.tickers.get_sub_state(ticker, SUB_TYPE_TRADES) is SUB_STATE_ON:
-            if msg['Fills']:
+        try:
+            if self._is_close_me():
+                return
+            ticker = msg['MarketName']
+            # subs = self.tickers.get_ticker_subs(ticker)
+            if self.tickers.get_sub_state(ticker, SUB_TYPE_ORDERBOOK) is SUB_STATE_ON:
+                self.order_queue.put(msg)
+            if self.tickers.get_sub_state(ticker, SUB_TYPE_ORDERBOOKUPDATE) is SUB_STATE_ON:
                 d = dict(self._create_base_layout(msg),
-                         **{'trades': msg['Fills']})
-                self.trades.on_change(d)
+                         **{'bids': msg['Buys'],
+                            'asks': msg['Sells']})
+                self.orderbook_update.on_change(d)
+            if self.tickers.get_sub_state(ticker, SUB_TYPE_TRADES) is SUB_STATE_ON:
+                if msg['Fills']:
+                    d = dict(self._create_base_layout(msg),
+                             **{'trades': msg['Fills']})
+                    self.trades.on_change(d)
+        except Exception as e:
+            print(e)
+            print('Got this exception from on_error. This is bug testing. Please report to '
+                  'https://github.com/slazarov/python-bittrex-websocket with this message')
 
     def _on_ticker_update(self, msg):
         """
         Invoking summary state updates for specific filter
         doesn't work right now. So we will filter them manually.
         """
-        if self._is_close_me():
-            return
-        if 'Deltas' in msg:
-            for update in msg['Deltas']:
-                if self.tickers.get_sub_state(ALL_TICKERS, SUB_TYPE_TICKERUPDATE) is SUB_STATE_ON:
-                    self.updateSummaryState.on_change(msg['Deltas'])
-                else:
-                    try:
-                        ticker = update['MarketName']
-                        subs = self.tickers.get_ticker_subs(ticker)
-                    except KeyError:  # not in the subscription list
-                        continue
+        try:
+            if self._is_close_me():
+                return
+            if 'Deltas' in msg:
+                for update in msg['Deltas']:
+                    if self.tickers.get_sub_state(ALL_TICKERS, SUB_TYPE_TICKERUPDATE) is SUB_STATE_ON:
+                        self.updateSummaryState.on_change(msg['Deltas'])
                     else:
-                        if subs['TickerUpdate']['Active']:
-                            self.updateSummaryState.on_change(update)
+                        try:
+                            ticker = update['MarketName']
+                            subs = self.tickers.get_ticker_subs(ticker)
+                        except KeyError:  # not in the subscription list
+                            continue
+                        else:
+                            if subs['TickerUpdate']['Active']:
+                                self.updateSummaryState.on_change(update)
+        except Exception as e:
+            print(e)
+            print('Got this exception from on_error. This is bug testing. Please report to '
+                  'https://github.com/slazarov/python-bittrex-websocket with this message')
 
     # -------------------------------------
     # Private Channels Supplemental Methods
@@ -1131,8 +1146,13 @@ class BittrexSocket(WebSocket):
 
     def on_error(self, error):
         # Error handler
-        print(error)
-        self.disconnect()
+        try:
+            print(error)
+            self.disconnect()
+        except Exception as e:
+            print(e)
+            print('Got this exception from on_error. This is bug testing. Please report to '
+                  'https://github.com/slazarov/python-bittrex-websocket with this message')
 
     def on_orderbook(self, msg):
         # The main channel of subscribe_to_orderbook().

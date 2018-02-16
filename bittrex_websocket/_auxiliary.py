@@ -27,6 +27,8 @@ def find_ticker_type(tickers):
 
 
 class Ticker(object):
+    ORDERBOOK_DEPTH_TIMEOUT = 40
+    
     def __init__(self):
         self.list = {}
         self.sub_types = [SUB_TYPE_ORDERBOOK,
@@ -143,10 +145,12 @@ class Ticker(object):
         tickers_list = find_ticker_type(tickers)
         for ticker in tickers_list:
             timeout = 0
-            while timeout < 40:
+            while timeout < self.ORDERBOOK_DEPTH_TIMEOUT:
                 while ticker not in self.list:
                     sleep(0.5)
                     timeout += 0.5
+                    if timeout > self.ORDERBOOK_DEPTH_TIMEOUT:
+                        raise RuntimeError("Unable to set order book depth, timeout")
                 else:
                     self.list[ticker][SUB_TYPE_ORDERBOOK]['OrderBookDepth'] = book_depth
                     logger.info(

@@ -218,7 +218,7 @@ class BittrexSocket(WebSocket):
         initialization with further subthreads for each connection.
         """
         self.on_open()
-        thread = Thread(target=self._start_socket_control_queue)
+        thread = Thread(target=self._start_socket_control_queue, name='BittrexSocketControlQueue')
         thread.daemon = True
         self.threads[thread.getName()] = thread
         thread.start()
@@ -269,7 +269,7 @@ class BittrexSocket(WebSocket):
         :param conn_event: Contains the connection object.
         :type conn_event: ConnectEvent
         """
-        thread = Thread(target=self._init_connection, args=(conn_event.conn_obj,))
+        thread = Thread(target=self._init_connection, args=(conn_event.conn_obj,), name='BittrexConnectionSetup')
         self.threads[thread.getName()] = thread
         conn_event.conn_obj.assign_thread(thread.getName())
         self.connections.update({conn_event.conn_obj.id: conn_event.conn_obj})
@@ -602,7 +602,7 @@ class BittrexSocket(WebSocket):
     def _is_order_queue(self):
         if self.order_queue is None:
             self.order_queue = queue.Queue()
-            thread = Thread(target=self._start_order_queue)
+            thread = Thread(target=self._start_order_queue, name='BittrexOrderQueueProcessor')
             thread.daemon = True
             self.threads[thread.getName()] = thread
             thread.start()

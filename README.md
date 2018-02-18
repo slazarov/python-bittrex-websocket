@@ -426,6 +426,10 @@ if __name__ == "__main__":
     main()
 ```
 # Change log
+0.0.6.3 - 18/02/2018
+* Major changes to how the code handles order book syncing. Syncing is done significantly faster than previous versions, i.e full sync of all Bittrex tickers takes ca. 4 minutes.
+* Fixed `on_open` bug as per [Issue #21](https://github.com/slazarov/python-bittrex-websocket/issues/21)
+
 0.0.6.2.2
 * Update cfscrape>=1.9.2 and gevent>=1.3a1
 * Reorder imports in websocket_client to safeguard against SSL recursion errors.

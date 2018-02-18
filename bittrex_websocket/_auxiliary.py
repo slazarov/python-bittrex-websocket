@@ -38,7 +38,7 @@ class Ticker(object):
         d = \
             {
                 SUB_TYPE_ORDERBOOK: dict(self._set_default_subscription(),
-                                         **{'SnapshotState': 0,
+                                         **{'SnapshotState': SNAPSHOT_OFF,
                                             'OrderBookDepth': 10,
                                             'NouncesRcvd': 0,
                                             'InternalQueue': None}),
@@ -293,7 +293,7 @@ class Ticker(object):
 
     def reset_snapshot(self, ticker):
         self.list[ticker][SUB_TYPE_ORDERBOOK]['NouncesRcvd'] = 0
-        self.list[ticker][SUB_TYPE_ORDERBOOK]['SnapshotState'] = 0
+        self.list[ticker][SUB_TYPE_ORDERBOOK]['SnapshotState'] = SNAPSHOT_OFF
         self.list[ticker][SUB_TYPE_ORDERBOOK]['InternalQueue'] = None
         logger.info(
             '[Subscription][{}][{}]: Snapshot nounce, state and internal queue are reset.'.format(SUB_TYPE_ORDERBOOK,

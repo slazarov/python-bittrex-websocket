@@ -273,7 +273,11 @@ class BittrexSocket(WebSocket):
         self.threads[thread.getName()] = thread
         conn_event.conn_obj.assign_thread(thread.getName())
         self.connections.update({conn_event.conn_obj.id: conn_event.conn_obj})
-        thread.start()
+        try:
+            thread.start()
+        except WebSocketConnectionClosedException:
+            print(WebSocketBadStatusException)
+            print('Received in _handle_connect. Report to github.')
 
     def _init_connection(self, conn_obj):
         """
@@ -439,8 +443,8 @@ class BittrexSocket(WebSocket):
                     for cb in server_callback:
                         for ticker in tickers:
                             conn.corehub.server.invoke(cb, ticker)
-                            if self.tickers.get_sub_state(ticker, SUB_TYPE_ORDERBOOK) is True:
-                                self._get_snapshot([ticker])
+                            # if self.tickers.get_sub_state(ticker, SUB_TYPE_ORDERBOOK) is True:
+                            #     self._get_snapshot([ticker])
                             conn.increment_ticker()
                 if server_callback_no_payload is not None:
                     if tickers == ALL_TICKERS:
@@ -498,19 +502,13 @@ class BittrexSocket(WebSocket):
         """
         conn, ticker = snapshot_event.conn_object, snapshot_event.ticker
         method = 'queryExchangeState'
-        # Wait for the connection to start successfully and record N nounces of data
-        while conn.state is False or self.tickers.get_nounces(ticker) < 5:
-            sleep(0.1)
-        else:
-            try:
-                logger.info(NSG_INFO_ORDER_BOOK_REQUESTED.format(SUB_TYPE_ORDERBOOK, ticker))
-                conn.corehub.server.invoke(method, ticker)
-                self.tickers.set_snapshot_state(ticker, SNAPSHOT_SENT)
-            except Exception as e:
-                print(e)
-                print('Failed to invoke snapshot query')
-        while self.tickers.get_snapshot_state(ticker) is not SNAPSHOT_ON:
-            sleep(0.5)
+        try:
+            logger.info(NSG_INFO_ORDER_BOOK_REQUESTED.format(SUB_TYPE_ORDERBOOK, ticker))
+            conn.corehub.server.invoke(method, ticker)
+            self.tickers.set_snapshot_state(ticker, SNAPSHOT_SENT)
+        except Exception as e:
+            print(e)
+            print('Failed to invoke snapshot query')
 
     def _handle_reconnect(self, reconnect_event):
         ticker, sub_type, book_depth = reconnect_event.tickers, reconnect_event.sub_type, reconnect_event.book_depth
@@ -596,7 +594,18 @@ class BittrexSocket(WebSocket):
                     conn_id = self.tickers.get_sub_type_conn_id(ticker_name, SUB_TYPE_ORDERBOOK)
                 else:
                     break
-            self.control_queue.put(SnapshotEvent(ticker_name, conn))
+            self.tickers.set_snapshot_state(ticker_name, SNAPSHOT_QUEUED)
+            ### EXPERIMENTAL ###
+            method = 'queryExchangeState'
+            try:
+                logger.info(NSG_INFO_ORDER_BOOK_REQUESTED.format(SUB_TYPE_ORDERBOOK, ticker_name))
+                conn.corehub.server.invoke(method, ticker_name)
+                self.tickers.set_snapshot_state(ticker_name, SNAPSHOT_SENT)
+            except Exception as e:
+                print(e)
+                print('Failed to invoke snapshot query')
+            ###
+            # self.control_queue.put(SnapshotEvent(ticker_name, conn))
 
     def _is_order_queue(self):
         if self.order_queue is None:
@@ -616,7 +625,7 @@ class BittrexSocket(WebSocket):
                 if order_event is not None:
                     ticker = order_event['MarketName']
                     snapshot_state = self.tickers.get_snapshot_state(ticker)
-                    if snapshot_state in [SNAPSHOT_OFF, SNAPSHOT_SENT]:
+                    if snapshot_state in [SNAPSHOT_OFF, SNAPSHOT_QUEUED, SNAPSHOT_SENT]:
                         self._init_backorder_queue(ticker, order_event)
                     elif snapshot_state == SNAPSHOT_RCVD:
                         if self._transfer_backorder_queue(ticker):
@@ -929,13 +938,20 @@ class BittrexSocket(WebSocket):
         # Detect if the message contains order book snapshots and manipulate them.
         if 'R' in msg and type(msg['R']) is not bool:
             if 'MarketName' in msg['R'] and msg['R']['MarketName'] is None:
-                for ticker in self.tickers.list.values():
-                    if ticker[SUB_TYPE_ORDERBOOK]['SnapshotState'] == SNAPSHOT_SENT:
-                        msg['R']['MarketName'] = ticker['Name']
-                        del msg['R']['Fills']
-                        self.order_books[ticker['Name']] = msg['R']
-                        self.tickers.set_snapshot_state(ticker['Name'], SNAPSHOT_RCVD)
-                        break
+                thread_name = current_thread().getName()
+                conn_id = self._return_conn_by_thread_name(thread_name).id
+                subs = self.tickers.sort_by_conn_id(conn_id)['OrderBook']
+                for ticker in subs.keys():
+                    # for ticker in self.tickers.list.values():
+                    if self.tickers.get_snapshot_state(ticker) is SNAPSHOT_SENT:
+                        # if ticker[SUB_TYPE_ORDERBOOK]['SnapshotState'] == SNAPSHOT_SENT:
+                        ### experimental - confirm
+                        if self._transfer_backorder_queue2(ticker, msg['R']):
+                            msg['R']['MarketName'] = ticker
+                            del msg['R']['Fills']
+                            self.order_books[ticker] = msg['R']
+                            self.tickers.set_snapshot_state(ticker, SNAPSHOT_RCVD)
+                            break
                 logger.info(NSG_INFO_ORDER_BOOK_RECEIVED.format(SUB_TYPE_ORDERBOOK, msg['R']['MarketName']))
 
     def _init_backorder_queue(self, ticker, msg):
@@ -963,6 +979,27 @@ class BittrexSocket(WebSocket):
                     self.tickers.set_snapshot_state(ticker, SNAPSHOT_ON)
                 q.task_done()
 
+    def _transfer_backorder_queue2(self, ticker, snapshot):
+        confirmed = False
+        sub = self.tickers.list[ticker][SUB_TYPE_ORDERBOOK]
+        q = sub['InternalQueue']
+        q2 = queue.Queue()
+        while True:
+            try:
+                e = q.get(False)
+                q2.put(e)
+            except queue.Empty:
+                sub['InternalQueue'] = q2
+                return confirmed
+            except AttributeError:
+                raise NotImplementedError('Please report error to '
+                                          'https://github.com/slazarov/python-bittrex-websocket, '
+                                          'Error:_transfer_backorder_queue:AttributeError')
+            else:
+                if self._confirm_order_book(snapshot, e):
+                    confirmed = True
+                q.task_done()
+
     # ========================
     # Private Channels Methods
     # ========================
@@ -987,8 +1024,9 @@ class BittrexSocket(WebSocket):
             if self._is_close_me():
                 return
             ticker = msg['MarketName']
-            # subs = self.tickers.get_ticker_subs(ticker)
             if self.tickers.get_sub_state(ticker, SUB_TYPE_ORDERBOOK) is SUB_STATE_ON:
+                if self.tickers.get_snapshot_state(ticker) is SNAPSHOT_OFF:
+                    self._get_snapshot([ticker])
                 self.order_queue.put(msg)
             if self.tickers.get_sub_state(ticker, SUB_TYPE_ORDERBOOKUPDATE) is SUB_STATE_ON:
                 d = dict(self._create_base_layout(msg),
@@ -1112,6 +1150,43 @@ class BittrexSocket(WebSocket):
             # self._handle_reconnect([ticker], SUB_TYPE_ORDERBOOK, book_depth)
             event = ReconnectEvent([ticker], SUB_TYPE_ORDERBOOK, book_depth)
             self.control_queue.put(event)
+
+    def _confirm_order_book(self, snapshot, nounce_data):
+        # Syncs the order book for the pair, given the most recent data from the socket
+        nounce_diff = nounce_data['Nounce'] - snapshot['Nounce']
+        if nounce_diff == 1:
+            # Start confirming
+            for side in [['Buys', True], ['Sells', False]]:
+                made_change = False
+                for item in nounce_data[side[0]]:
+                    # TYPE 1: Cancelled / filled order entries at matching price
+                    # -> DELETE from the order book
+                    if item['Type'] == 1:
+                        for i, existing_order in enumerate(
+                                self.order_books[snapshot][side[0]]):
+                            if existing_order['Rate'] == item['Rate']:
+                                del self.order_books[snapshot][side[0]][i]
+                                made_change = True
+                                break
+
+                    # TYPE 2: Changed order entries at matching price (partial fills, cancellations)
+                    # -> EDIT the order book
+                    elif item['Type'] == 2:
+                        for existing_order in self.order_books[snapshot][side[0]]:
+                            if existing_order['Rate'] == item['Rate']:
+                                existing_order['Quantity'] = item['Quantity']
+                                made_change = True
+                                break
+                if made_change:
+                    return True
+                else:
+                    return False
+        # The next nounce will trigger a sync.
+        elif nounce_diff == 0:
+            return True
+        # The order book snapshot nounce is ahead. Discard this nounce.
+        elif nounce_diff < 0:
+            return False
 
     def _is_close_me(self):
         thread_name = current_thread().getName()

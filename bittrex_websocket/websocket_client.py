@@ -1040,7 +1040,7 @@ class BittrexSocket(WebSocket):
                     self.trades.on_change(d)
         except Exception as e:
             print(e)
-            print('Got this exception from on_error. This is bug testing. Please report to '
+            print('Got this exception from _on_tick_update. This is bug testing. Please report to '
                   'https://github.com/slazarov/python-bittrex-websocket with this message')
 
     def _on_ticker_update(self, msg):
@@ -1066,7 +1066,7 @@ class BittrexSocket(WebSocket):
                                 self.updateSummaryState.on_change(update)
         except Exception as e:
             print(e)
-            print('Got this exception from on_error. This is bug testing. Please report to '
+            print('Got this exception from _on_ticker_update. This is bug testing. Please report to '
                   'https://github.com/slazarov/python-bittrex-websocket with this message')
 
     # -------------------------------------

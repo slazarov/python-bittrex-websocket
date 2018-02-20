@@ -61,20 +61,7 @@ I have been largely motivated by the following projects and people:
 # Road map
 
 ### Notices
-Version 0.0.6 will change the names of the unsubscribe methods from:
-```
-unsubscribe_to_orderbook
-unsubscribe_to_orderbook_update
-unsubscribe_to_trades
-unsubscribe_to_ticker_update
-```
-to
-```
-unsubscribe_from_orderbook
-unsubscribe_from_orderbook_update
-unsubscribe_from_trades
-unsubscribe_from_ticker_update
-```
+None right now.
 
 ### Currently in development
 * Socket reconnection handling
@@ -426,6 +413,10 @@ if __name__ == "__main__":
     main()
 ```
 # Change log
+0.0.6.3 - 18/02/2018
+* Major changes to how the code handles order book syncing. Syncing is done significantly faster than previous versions, i.e full sync of all Bittrex tickers takes ca. 4 minutes.
+* Fixed `on_open` bug as per [Issue #21](https://github.com/slazarov/python-bittrex-websocket/issues/21)
+
 0.0.6.2.2
 * Update cfscrape>=1.9.2 and gevent>=1.3a1
 * Reorder imports in websocket_client to safeguard against SSL recursion errors.

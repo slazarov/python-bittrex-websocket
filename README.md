@@ -413,6 +413,9 @@ if __name__ == "__main__":
     main()
 ```
 # Change log
+0.0.6.4 - 24/02/2018
+* Fixed order book syncing bug when more than 1 connection is online due to wrong connection/thread name.
+
 0.0.6.3 - 18/02/2018
 * Major changes to how the code handles order book syncing. Syncing is done significantly faster than previous versions, i.e full sync of all Bittrex tickers takes ca. 4 minutes.
 * Fixed `on_open` bug as per [Issue #21](https://github.com/slazarov/python-bittrex-websocket/issues/21)

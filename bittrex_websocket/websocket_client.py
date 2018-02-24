@@ -269,7 +269,7 @@ class BittrexSocket(WebSocket):
         :param conn_event: Contains the connection object.
         :type conn_event: ConnectEvent
         """
-        thread = Thread(target=self._init_connection, args=(conn_event.conn_obj,), name='BittrexConnectionSetup')
+        thread = Thread(target=self._init_connection, args=(conn_event.conn_obj,))
         self.threads[thread.getName()] = thread
         conn_event.conn_obj.assign_thread(thread.getName())
         self.connections.update({conn_event.conn_obj.id: conn_event.conn_obj})

@@ -418,7 +418,6 @@ if __name__ == "__main__":
 * Added wsaccel for better socket performance.
 * Set websocket-client minimum version to 0.47.0
 
-wsaccel
 0.0.6.4 - 24/02/2018
 * Fixed order book syncing bug when more than 1 connection is online due to wrong connection/thread name.
 

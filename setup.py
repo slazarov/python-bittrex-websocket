@@ -8,13 +8,14 @@ install_requires = \
         'signalr-client==0.0.7',
         'requests[security]==2.18.4',
         'Events==0.3',
-        'websocket-client>=0.46.0',
-        'gevent>=1.3a1'
+        'websocket-client>=0.47.0',
+        'gevent>=1.3a1',
+        'wsaccel>=0.6.2'
     ]
 
 setup(
     name='bittrex_websocket',
-    version='0.0.6.4',
+    version='0.0.7.0',
     author='Stanislav Lazarov',
     author_email='s.a.lazarov@gmail.com',
     license='MIT',

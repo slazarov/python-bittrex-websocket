@@ -6,7 +6,8 @@
 
 from __future__ import print_function
 
-from signalr import Connection
+# from signalr import Connection
+from ._signalr import Connection
 import logging
 from abc import ABCMeta, abstractmethod
 from threading import Thread, current_thread
@@ -330,10 +331,14 @@ class BittrexSocket(WebSocket):
                     # Add handlers
                     corehub.client.on('updateExchangeState', self._on_tick_update)
                     corehub.client.on('updateSummaryState', self._on_ticker_update)
-                    conn.wait(5400)
+                    run = conn.wait(5400)
                     # When we purposely close the connection, the script will exit conn.wait()
                     # so we need to inform the script that it should not try to reconnect.
                     if conn_obj.close_me is True:
+                        return
+                    elif run is not None:
+                        logger.error(MSG_ERROR_GEVENT.format(conn_id, type(run)))
+                        self._empty_conn_id(conn_id)
                         return
                     is_next_url()
                 except HTTPError:

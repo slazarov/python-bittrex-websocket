@@ -413,6 +413,12 @@ if __name__ == "__main__":
     main()
 ```
 # Change log
+0.0.7.0 - 25/02/2018
+* New reconnection methods implemented. Problem was within `gevent`, because connection failures within it are not raised in the main script.
+* Added wsaccel for better socket performance.
+* Set websocket-client minimum version to 0.47.0
+
+wsaccel
 0.0.6.4 - 24/02/2018
 * Fixed order book syncing bug when more than 1 connection is online due to wrong connection/thread name.
 

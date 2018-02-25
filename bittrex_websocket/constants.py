@@ -49,5 +49,6 @@ MSG_ERROR_SOCKET_WEBSOCKETBADSTATUS = 'Please report error to ' \
 MSG_ERROR_SOCKET_WEBSOCKETCONNECTIONCLOSED = 'Please report error to ' \
                                              'https://github.com/slazarov/python-bittrex-websocket, ' \
                                              'Error:Init_connection_WebSocketConnectionClosedException'
+MSG_ERROR_GEVENT = _CONN_PREFIX + 'Caught {} in gevent. Don\'t worry.'
 MSG_ERROR_CONN_MISSING_SCHEMA = _CONN_PREFIX + 'Invalid URL: {}'
 MSG_ERROR_CONN_HTTP = _CONN_PREFIX + 'Failed to establish connection through {}'

@@ -518,7 +518,7 @@ class BittrexSocket(WebSocket):
     def _handle_reconnect(self, reconnect_event):
         ticker, sub_type, book_depth = reconnect_event.tickers, reconnect_event.sub_type, reconnect_event.book_depth
 
-        logger.info(MSG_INFO_RECONNECT.format(ticker, sub_type))
+        logger.info(MSG_INFO_RECONNECT.format(sub_type, ticker))
 
         if sub_type == SUB_TYPE_ORDERBOOK:
             self.unsubscribe_from_orderbook(ticker, False)

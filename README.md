@@ -19,9 +19,11 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE
 # Table of contents
 * [bittrex\-websocket](#bittrex-websocket)
 * [Table of contents](#table-of-contents)
-* [Testing needed](#testing-needed)
 * [What can I use it for?](#what-can-i-use-it-for)
-* [Motivation](#motivation)
+* [Notices](#notices)
+I have just released a new [SignalR client](https://github.com/slazarov/python-signalr-client) based on asyncio. I plan to replace the existing one that uses gevent.
+The main implications are that support is going to transition to Python3.4+ because asyncio does not support lower versions.
+
 * [Road map](#road-map)
 * [Dependencies](#dependencies)
 * [Installation](#installation)
@@ -34,10 +36,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE
 * [Change log](#change-log)
 * [Other libraries](#other-libraries)
 * [Support](#support)
+* [Motivation](#motivation)
 
-# Testing needed
-It's a newly published library so please test it and report for any bugs.
-Much appreciated.
 
 # What can I use it for?
 You can use it for various purposes, some examples include:
@@ -47,32 +47,16 @@ You can use it for various purposes, some examples include:
 
 Use your imagination.
 
-# Motivation
-I am fairly new to Python and in my experience the best way to learn something is through actual practice. At the same time I am currently actively trading on Bittrex, hence the reason why I decided to build the Bittrex websocket client. I am publishing my code for a few reasons. Firstly, I want to make a contribution to the community, secondly the code needs lots of improvements and it would be great to work on it as a team, thirdly I haven't seen any other Python Bittrex websocket clients so far.
-
-I have been largely motivated by the following projects and people:
-
-* Daniel Paquin: [gdax-python](https://github.com/danpaquin/gdax-python) - a websocket client for GDAX. The project really helped me around using threads and structuring the code.
-
-* [David Parlevliet](https://github.com/dparlevliet) - saw his SignalR code initially which included Bittrex specific commands. Saved me a lot of time in researching.
-
-* Eric Somdahl: [python-bittrex](https://github.com/ericsomdahl/python-bittrex) - great python bindings for Bittrex. Highly recommend it, I use it in conjuction with the websocket client.
-
-# Road map
-
 ### Notices
 None right now.
 
-### Currently in development
+# Road map
 * Socket reconnection handling
-    * Implemented but experimental
-* Test scripts
-* Code cleanup, optimization
-* Lots of stuff, waiting for suggestions
 
-### Done
+    ~~* Implemented but experimental~~
 * ~~More user friendly subscription to the exchange channels.~~
 * ~~Pypi~~
+* Test scripts
 
 # Dependencies
 To successfully install the package the following dependencies must be met:
@@ -475,3 +459,14 @@ The message now contains a single ticker instead of a dictionary of all subscrib
 Python CLI tool to auto sell coins on Bittrex.
 
 It is used in the cases when you want to auto sell a specific coin for another, but there is no direct market, so you have to use an intermediate market.
+
+# Motivation
+I am fairly new to Python and in my experience the best way to learn something is through actual practice. At the same time I am currently actively trading on Bittrex, hence the reason why I decided to build the Bittrex websocket client. I am publishing my code for a few reasons. Firstly, I want to make a contribution to the community, secondly the code needs lots of improvements and it would be great to work on it as a team, thirdly I haven't seen any other Python Bittrex websocket clients so far.
+
+I have been largely motivated by the following projects and people:
+
+* Daniel Paquin: [gdax-python](https://github.com/danpaquin/gdax-python) - a websocket client for GDAX. The project really helped me around using threads and structuring the code.
+
+* [David Parlevliet](https://github.com/dparlevliet) - saw his SignalR code initially which included Bittrex specific commands. Saved me a lot of time in researching.
+
+* Eric Somdahl: [python-bittrex](https://github.com/ericsomdahl/python-bittrex) - great python bindings for Bittrex. Highly recommend it, I use it in conjuction with the websocket client.

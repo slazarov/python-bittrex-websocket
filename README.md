@@ -21,9 +21,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE
 * [Table of contents](#table-of-contents)
 * [What can I use it for?](#what-can-i-use-it-for)
 * [Notices](#notices)
-I have just released a new [SignalR client](https://github.com/slazarov/python-signalr-client) based on asyncio. I plan to replace the existing one that uses gevent.
-The main implications are that support is going to transition to Python3.4+ because asyncio does not support lower versions.
-
 * [Road map](#road-map)
 * [Dependencies](#dependencies)
 * [Installation](#installation)
@@ -48,7 +45,9 @@ You can use it for various purposes, some examples include:
 Use your imagination.
 
 ### Notices
-None right now.
+17/03/2018
+I have just released a new [SignalR client](https://github.com/slazarov/python-signalr-client) based on asyncio. I plan to replace the existing one that uses gevent.
+The main implications are that support is going to transition to Python3.4+ because asyncio does not support lower versions.
 
 # Road map
 * Socket reconnection handling

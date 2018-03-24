@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 from setuptools import setup, find_packages
- 
+
 install_requires = \
     [
         'cfscrape>=1.9.4',
@@ -9,7 +9,8 @@ install_requires = \
         'Events==0.3',
         'websocket-client>=0.47.0',
         'gevent>=1.3a1',
-        'wsaccel>=0.6.2'
+        'wsaccel>=0.6.2',
+        'signalr-client-slazarov==0.0.7.2'
     ]
 
 setup(
@@ -18,7 +19,7 @@ setup(
     author='Stanislav Lazarov',
     author_email='s.a.lazarov@gmail.com',
     license='MIT',
-    dependency_links=['http://github.com/slazarov/signalr-client-py/tarball/develop#egg=signalr-client-py'],
+    # dependency_links=['https://github.com/slazarov/signalr-client-py/tarball/develop#egg=signalr-client-py-0.0.7.2'],
     url='https://github.com/slazarov/python-bittrex-websocket',
     packages=find_packages(exclude=['tests*']),
     install_requires=install_requires,

@@ -1,5 +1,5 @@
+git+https://github.com/slazarov/signalr-client-py.git@develop#egg=signalr-client-py
 cfscrape>=1.9.4
-signalr-client==0.0.7
 requests[security]==2.18.4
 Events==0.3
 websocket-client==0.47.0

@@ -5,7 +5,6 @@ from setuptools import setup, find_packages
 install_requires = \
     [
         'cfscrape>=1.9.4',
-        'signalr-client==0.0.7',
         'requests[security]==2.18.4',
         'Events==0.3',
         'websocket-client>=0.47.0',
@@ -15,10 +14,11 @@ install_requires = \
 
 setup(
     name='bittrex_websocket',
-    version='0.0.7.0',
+    version='0.0.7.1',
     author='Stanislav Lazarov',
     author_email='s.a.lazarov@gmail.com',
     license='MIT',
+    dependency_links=['http://github.com/slazarov/signalr-client-py/tarball/developt#egg=signalr-client-py'],
     url='https://github.com/slazarov/python-bittrex-websocket',
     packages=find_packages(exclude=['tests*']),
     install_requires=install_requires,

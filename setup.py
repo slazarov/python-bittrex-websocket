@@ -18,7 +18,7 @@ setup(
     author='Stanislav Lazarov',
     author_email='s.a.lazarov@gmail.com',
     license='MIT',
-    dependency_links=['http://github.com/slazarov/signalr-client-py/tarball/developt#egg=signalr-client-py'],
+    dependency_links=['http://github.com/slazarov/signalr-client-py/tarball/develop#egg=signalr-client-py'],
     url='https://github.com/slazarov/python-bittrex-websocket',
     packages=find_packages(exclude=['tests*']),
     install_requires=install_requires,

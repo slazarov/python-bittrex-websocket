@@ -3,7 +3,7 @@ import gevent
 from ._exceptions import WebSocketConnectionClosedException
 
 
-class Connection(signalr.Connection):
+class Connection(signalr.Connection, object):
     def __init__(self, url, session):
         super(Connection, self).__init__(url, session)
         self.error_trap = None

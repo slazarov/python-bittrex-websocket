@@ -44,7 +44,7 @@ You can use it for various purposes, some examples include:
 
 Use your imagination.
 
-### Notices
+# Notices
 17/03/2018
 I have just released a new [SignalR client](https://github.com/slazarov/python-signalr-client) based on asyncio. I plan to replace the existing one that uses gevent.
 The main implications are that support is going to transition to Python3.4+ because asyncio does not support lower versions.

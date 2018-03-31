@@ -5,8 +5,6 @@
 # Stanislav Lazarov
 
 from __future__ import print_function
-
-# from signalr import Connection
 from ._signalr import Connection
 import logging
 from abc import ABCMeta, abstractmethod

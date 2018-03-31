@@ -307,7 +307,8 @@ class BittrexSocket(WebSocket):
             self_workaround['connection'] = self._create_cookie()
             return self_workaround
 
-        urls = ['https://socket-stage.bittrex.com/signalr',
+        urls = ['https://socket-beta.bittrex.com/signalr',
+                'https://socket-stage.bittrex.com/signalr',
                 'https://socket.bittrex.com/signalr']
         conn, corehub, conn_id = conn_obj.conn, conn_obj.corehub, conn_obj.id
         self_workaround = {'urls': reload_generator(), 'connection': conn}

@@ -396,6 +396,10 @@ if __name__ == "__main__":
     main()
 ```
 # Change log
+0.0.7.1 - 31/03/2018
+* Removed wsaccel: no particular socket benefits
+* Fixed RecursionError as per [Issue #52](https://github.com/slazarov/python-bittrex-websocket/issues/52)
+
 0.0.7.0 - 25/02/2018
 * New reconnection methods implemented. Problem was within `gevent`, because connection failures within it are not raised in the main script.
 * Added wsaccel for better socket performance.

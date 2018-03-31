@@ -9,7 +9,6 @@ install_requires = \
         'Events==0.3',
         'websocket-client>=0.47.0',
         'gevent>=1.3a1',
-        'wsaccel>=0.6.2',
         'signalr-client-slazarov==0.0.7.2'
     ]
 

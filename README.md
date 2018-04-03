@@ -6,8 +6,6 @@ The library is mainly written in Python3 but should support Python2 with the sam
 
 *I am not associated with Bittrex. Use the library at your own risk, I don't bear any responsibility if you end up losing your money.*
 
-*As of **24 Nov 2017**, there is still no official websocket documentation.*
-
 *The code is licensed under the MIT license. Please consider the following message:*
 > THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
@@ -45,11 +43,18 @@ You can use it for various purposes, some examples include:
 Use your imagination.
 
 # Notices
-17/03/2018
+**27/03/2018**
+
+Bittrex has published officicial beta [documentation](https://github.com/Bittrex/beta).
+
+**17/03/2018**
+
 I have just released a new [SignalR client](https://github.com/slazarov/python-signalr-client) based on asyncio. I plan to replace the existing one that uses gevent.
-The main implications are that support is going to transition to Python3.4+ because asyncio does not support lower versions.
+The main implications are that support is going to transition to Python3.5+ because asyncio does not support lower versions.
 
 # Road map
+* Implementation of new changes with respect to the published official documentation.
+* Development of new improved async version of the socket.
 * Socket reconnection handling
 
     ~~* Implemented but experimental~~

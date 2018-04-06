@@ -401,6 +401,12 @@ if __name__ == "__main__":
     main()
 ```
 # Change log
+0.0.7.3 - 06/04/2018
+* Set cfscrape >=1.9.5
+
+0.0.7.2 - 31/03/2018
+* Added third connection URL.
+
 0.0.7.1 - 31/03/2018
 * Removed wsaccel: no particular socket benefits
 * Fixed RecursionError as per [Issue #52](https://github.com/slazarov/python-bittrex-websocket/issues/52)

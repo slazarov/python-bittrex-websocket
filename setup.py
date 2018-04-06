@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 install_requires = \
     [
-        'cfscrape>=1.9.4',
+        'cfscrape>=1.9.5',
         'requests[security]==2.18.4',
         'Events==0.3',
         'websocket-client>=0.47.0',
@@ -14,7 +14,7 @@ install_requires = \
 
 setup(
     name='bittrex_websocket',
-    version='0.0.7.2',
+    version='0.0.7.3',
     author='Stanislav Lazarov',
     author_email='s.a.lazarov@gmail.com',
     license='MIT',

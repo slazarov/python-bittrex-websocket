@@ -43,6 +43,10 @@ You can use it for various purposes, some examples include:
 Use your imagination.
 
 # Notices
+**11/04/2018**
+The async version of the socket has been released.
+[python-bittrex-websocket-aio](https://github.com/slazarov/python-bittrex-websocket-aio)
+
 **27/03/2018**
 
 Bittrex has published officicial beta [documentation](https://github.com/Bittrex/beta).

@@ -2,6 +2,25 @@
 **Python** websocket client ([SignalR](https://pypi.python.org/pypi/signalr-client/0.0.7)) for getting live streaming data from [Bittrex Exchange](http://bittrex.com).
 
 The library is mainly written in Python3 but should support Python2 with the same functionality, please report any issues.
+
+If you prefer asyncio (Python>=3.5), try my other library https://github.com/slazarov/python-bittrex-websocket-aio.
+
+# My plans for the websocket client
+
+Bittrex released their [official beta websocket documentation](https://github.com/Bittrex/beta) on 27-March-2018.
+The major changes were the removal of the need to bypass Cloudflare and the introduction of new public (`Lite Summary Delta`) and private (`Balance Delta` & `Order Delta`) channels.
+
+Following that, I decided to repurpose the client as a higher level Bittrex API which users can use to build on. The major changes are:
+
+* ~~Existing methods will be restructured in order to mimic the official ones, i.e `subscribe_to_orderbook_update` will become `subscribe_to_exchange_deltas`. This would make referencing the official documentation more clear and will reduce confusion.~~
+* ~~`QueryExchangeState` will become a public method so that users can invoke it freely.~~
+* The method `subscribe_to_orderbook` will be removed and instead placed as a separate module. Before the latter happens, users can use the legacy library.
+* ~~Private, account specific methods will be implemented, i.e `Balance Delta` & `Order Delta`~~
+* ~~Replacement of the legacy `on_channels` with only two channels for the public and private streams.~~
+
+My goal is to maintain the interface of the two socket versions as similar as possible and leave the choice between async/gevent and Python2/3 to the users.
+Saying that, I still prefer the async version.
+
 ### Disclaimer
 
 *I am not associated with Bittrex. Use the library at your own risk, I don't bear any responsibility if you end up losing your money.*
@@ -43,34 +62,23 @@ You can use it for various purposes, some examples include:
 Use your imagination.
 
 # Notices
+**14/04/2018**
+
+The async version of the socket has been released: [python-bittrex-websocket-aio](https://github.com/slazarov/python-bittrex-websocket-aio).
+
 **27/03/2018**
 
 Bittrex has published officicial beta [documentation](https://github.com/Bittrex/beta).
 
-**17/03/2018**
-
-I have just released a new [SignalR client](https://github.com/slazarov/python-signalr-client) based on asyncio. I plan to replace the existing one that uses gevent.
-The main implications are that support is going to transition to Python3.5+ because asyncio does not support lower versions.
-
 # Road map
-* Implementation of new changes with respect to the published official documentation.
-* Development of new improved async version of the socket.
-* Socket reconnection handling
 
-    ~~* Implemented but experimental~~
-* ~~More user friendly subscription to the exchange channels.~~
-* ~~Pypi~~
-* Test scripts
 
 # Dependencies
 To successfully install the package the following dependencies must be met:
-* [cfscrape](https://github.com/Anorov/cloudflare-scrape) requires [Node.js](https://nodejs.org/en/)
-
-    If you receive `Missing Node.js runtime. Node is required...` error as documented in [Issue #12](https://github.com/slazarov/python-bittrex-websocket/issues/12#issuecomment-354078963), you will have to install Node.js. This error usually shows for Windows users.
 
 * [requests[security]](https://github.com/requests/requests)
   * g++, make, libffi-dev, openssl-dev
-* [signalr-client](https://github.com/TargetProcess/signalr-client-py)
+* [signalr-client](https://github.com/slazarov/signalr-client-py)
   * g++, make
 
 I have added a Dockerfile for а quick setup. Please check the docker folder. The example.py is not always up to date.
@@ -78,139 +86,80 @@ I have added a Dockerfile for а quick setup. Please check the docker folder. Th
 I am only adding this as a precaution, in most case you will not have to do anything at all as these are prepackaged with your python installation.
 
 # Installation
-#### Pypi (most stable)
-```python
-pip install bittrex-websocket
-```
-#### Github (master)
+
+The library can be installed through Github and PyPi. For the latest updates, use Github.
+
 ```python
 pip install git+https://github.com/slazarov/python-bittrex-websocket.git
-```
-#### Github (work in progress branch)
-```python
 pip install git+https://github.com/slazarov/python-bittrex-websocket.git@next-version-number
+pip install bittrex-websocket
 ```
 # Methods
 #### Subscribe Methods
 ```python
-def subscribe_to_orderbook(self, tickers, book_depth=10):
+def subscribe_to_exchange_deltas(self, tickers):
     """
-    Subscribe and maintain the live order book for a set of ticker(s).
+    Allows the caller to receive real-time updates to the state of a SINGLE market.
+    Upon subscribing, the callback will be invoked with market deltas as they occur.
 
-    :param tickers: A list of tickers you are interested in.
-    :type tickers: []
-    :param book_depth: The desired depth of the order book to be maintained.
-    :type book_depth: int
-    """
-
-def subscribe_to_orderbook_update(self, tickers):
-    """
-    Subscribe to order book updates for a set of ticker(s).
+    This feed only contains updates to exchange state. To form a complete picture of
+    exchange state, users must first call QueryExchangeState and merge deltas into
+    the data structure returned in that call.
 
     :param tickers: A list of tickers you are interested in.
     :type tickers: []
     """
 
-def subscribe_to_trades(self, tickers):
+
+def subscribe_to_summary_deltas(self):
     """
-    Subscribe and receive tick data(executed trades) for a set of ticker(s).
+    Allows the caller to receive real-time updates of the state of ALL markets.
+    Upon subscribing, the callback will be invoked with market deltas as they occur.
+
+    Summary delta callbacks are verbose. A subset of the same data limited to the
+    market name, the last price, and the base currency volume can be obtained via
+    `subscribe_to_summary_lite_deltas`.
+
+    https://github.com/Bittrex/beta#subscribetosummarydeltas
+    """
+
+def subscribe_to_summary_lite_deltas(self):
+    """
+    Similar to `subscribe_to_summary_deltas`.
+    Shows only market name, last price and base currency volume.
+
+    """
+
+def query_summary_state(self):
+    """
+    Allows the caller to retrieve the full state for all markets.
+    """
+
+def query_exchange_state(self, tickers):
+    """
+    Allows the caller to retrieve the full order book for a specific market.
 
     :param tickers: A list of tickers you are interested in.
     :type tickers: []
     """
 
-def subscribe_to_ticker_update(self, tickers):
+def authenticate(self, api_key, api_secret):
     """
-    Subscribe and receive general data updates for a set of ticker(s). Example output:
+    Verifies a user’s identity to the server and begins receiving account-level notifications
 
-    {
-        'MarketName': 'BTC-ADA',
-        'High': 7.65e-06,
-        'Low': 4.78e-06,
-        'Volume': 1352355429.5288217,
-        'Last': 7.2e-06,
-        'BaseVolume': 7937.59243908,
-        'TimeStamp': '2017-11-28T15:02:17.7',
-        'Bid': 7.2e-06,
-        'Ask': 7.21e-06,
-        'OpenBuyOrders': 4452,
-        'OpenSellOrders': 3275,
-        'PrevDay': 5.02e-06,
-        'Created': '2017-09-29T07:01:58.873'
-    }
-
-    :param tickers: A list of tickers you are interested in.
-    :type tickers: []
-    """
-```
-
-#### Unsubscribe Methods
-
-```python
-def unsubscribe_from_orderbook(self, tickers):
-    """
-    Unsubscribe from real time order for specific set of ticker(s).
-
-    :param tickers: A list of tickers you are interested in.
-    :type tickers: []
-    """
-
-def unsubscribe_from_orderbook_update(self, tickers):
-    """
-    Unsubscribe from order book updates for a set of ticker(s).
-
-    :param tickers: A list of tickers you are interested in.
-    :type tickers: []
-    """
-
-def unsubscribe_from_trades(self, tickers):
-    """
-    Unsubscribe from receiving tick data(executed trades) for a set of ticker(s)
-
-    :param tickers: A list of tickers you are interested in.
-    :type tickers: []
-    """
-
-def unsubscribe_from_ticker_update(self, tickers):
-    """
-    Unsubscribe from receiving general data updates for a set of ticker(s).
-
-    :param tickers: A list of tickers you are interested in.
-    :type tickers: []
+    :param api_key: Your api_key with the relevant permissions.
+    :type api_key: str
+    :param api_secret: Your api_secret with the relevant permissions.
+    :type api_secret: str
     """
 ```
 
 #### Other Methods
 
 ```python
-def get_order_book(self, ticker=None):
-    """
-    Returns the most recently updated order book for the specific ticker.
-    If no ticker is specified, returns a dictionary with the order books of
-    all subscribed tickers.
-
-    :param ticker: The specific ticker you want the order book for.
-    :type ticker: str
-    """
-
-def get_order_book_sync_state(self, tickers=None):
-    """
-    Returns the sync state of the order book for the specific ticker(s).
-    If no ticker is specified, returns the state for all tickers.
-    The sync states are:
-
-        Not initiated = 0
-        Invoked, not synced = 1
-        Received, not synced, not processing = 2
-        Received, synced, processing = 3
-
-    :param tickers: The specific ticker(s) and it's order book sync state you are interested in.
-    :type tickers: []
-    """
-
 def disconnect(self):
     """
-    Disconnects the connections and stops the websocket instance.
+    Disconnects the socket.
     """
 
 def enable_log(file_name=None):
@@ -228,179 +177,25 @@ def disable_log():
 ```
 
 # Message channels
-The websocket clients starts a separate thread upon initialization with further subthreads for each connection (currently 20 tickers per connection). There are several methods which could be overwritten. Please check the actual code for further information and examples.
 ```python
-def on_open(self):
-    # Called before initiating the first websocket connection
-    # Use it when you want to add some opening logic.
+def on_public(self, msg):
+    # The main channel for all public methods.
 
-def on_close(self):
-    # Called before closing the websocket instance.
-    # Use it when you want to add any closing logic.
+def on_private(self, msg):
+    # The main channel for all private methods.
 
 def on_error(self, error):
-    # Error handler
+    # Receive error message from the SignalR connection.
 
-def on_orderbook(self, msg):
-    # The main channel of subscribe_to_orderbook().
-
-def on_orderbook_update(self, msg):
-    # The main channel of subscribe_to_orderbook_update().
-
-def on_trades(self, msg):
-    # The main channel of subscribe_to_trades().
-
-def on_ticker_update(self, msg):
-    # The main channel of subscribe_to_ticker_update().
 ```
 
 # Sample usage
-To receive live data feed you must instantiate the websocket and use one of its subscribe methods. For the various subscription methods check above. Example:
-##### Subscribe to a single ticker
-```python
-# Tickers
-tickers = ['ETH-ZEC'] # use lists
-ws = MySocket()
-ws.subscribe_to_orderbook(tickers)
-# Do some stuff and trade for infinite profit
-ws.disconnect()
-```
-##### Subscribe to multiple tickers
-```python
-# Tickers
-tickers = ['BTC-ETH', 'BTC-NEO', 'BTC-ZEC', 'ETH-NEO', 'ETH-ZEC'] # use lists
-ws = MySocket()
-ws.subscribe_to_ticker_update(tickers)
-# Do some stuff and trade for infinite profit
-ws.disconnect()
-```
+Check the examples folder.
 
-Let's get some 'practical' examples.
-
-Note that with library updates, the methods and data structure might change, so check the examples folder for the most up to date examples.
-#### Record trades
-```python
-from __future__ import print_function
-from time import sleep
-from bittrex_websocket.websocket_client import BittrexSocket
-
-
-def main():
-    class MySocket(BittrexSocket):
-        def on_open(self):
-            self.trade_history = {}
-
-        def on_trades(self, msg):
-            # Create entry for the ticker in the trade_history dict
-            if msg['ticker'] not in self.trade_history:
-                self.trade_history[msg['ticker']] = []
-            # Add history nounce
-            self.trade_history[msg['ticker']].append(msg)
-            # Ping
-            print('[Trades]: {}'.format(msg['ticker']))
-
-    # Create the socket instance
-    ws = MySocket()
-    # Enable logging
-    ws.enable_log()
-    # Define tickers
-    tickers = ['BTC-ETH', 'BTC-XMR']
-    # Subscribe to trade fills
-    ws.subscribe_to_trades(tickers)
-
-    while len(set(tickers) - set(ws.trade_history)) > 0:
-        sleep(1)
-    else:
-        for ticker in ws.trade_history.keys():
-            print('Printing {} trade history.'.format(ticker))
-            for trade in ws.trade_history[ticker]:
-                print(trade)
-        ws.disconnect()
-
-if __name__ == "__main__":
-    main()
-```
-
-#### Live/Real-time order book
-```python
-from __future__ import print_function
-from time import sleep
-from bittrex_websocket.websocket_client import BittrexSocket
-
-
-def main():
-    class MySocket(BittrexSocket):
-        def on_orderbook(self, msg):
-            print('[OrderBook]: {}'.format(msg['MarketName']))
-
-    # Create the socket instance
-    ws = MySocket()
-    # Enable logging
-    ws.enable_log()
-    # Define tickers
-    tickers = ['BTC-ETH', 'BTC-NEO', 'BTC-ZEC', 'ETH-NEO', 'ETH-ZEC']
-    # Subscribe to live order book
-    ws.subscribe_to_orderbook(tickers)
-
-    while True:
-        i = 0
-        sync_states = ws.get_order_book_sync_state()
-        for state in sync_states.values():
-            if state == 3:
-                i += 1
-        if i == len(tickers):
-            print('We are fully synced. Hooray!')
-            for ticker in tickers:
-                ob = ws.get_order_book(ticker)
-                name = ob['MarketName']
-                quantity = str(ob['Buys'][0]['Quantity'])
-                price = str(ob['Buys'][0]['Rate'])
-                print('Ticker: ' + name + ', Bids depth 0: ' + quantity + '@' + price)
-            ws.disconnect()
-            break
-        else:
-            sleep(1)
-
-if __name__ == "__main__":
-    main()
-```
-#### Ticker general information update
-```python
-from __future__ import print_function
-from time import sleep
-from bittrex_websocket.websocket_client import BittrexSocket
-
-
-def main():
-    class MySocket(BittrexSocket):
-        def on_open(self):
-            self.ticker_updates_container = {}
-
-        def on_ticker_update(self, msg):
-            name = msg['MarketName']
-            if name not in self.ticker_updates_container:
-                self.ticker_updates_container[name] = msg
-                print('Just received ticker update for {}.'.format(name))
-
-    # Create the socket instance
-    ws = MySocket()
-    # Enable logging
-    ws.enable_log()
-    # Define tickers
-    tickers = ['BTC-ETH', 'BTC-NEO', 'BTC-ZEC', 'ETH-NEO', 'ETH-ZEC']
-    # Subscribe to ticker information
-    ws.subscribe_to_ticker_update(tickers)
-
-    while len(ws.ticker_updates_container) < len(tickers):
-        sleep(1)
-    else:
-        print('We have received updates for all tickers. Closing...')
-        ws.disconnect()
-
-if __name__ == "__main__":
-    main()
-```
 # Change log
+1.0.0.0 - 15/04/2018
+* As per the [road map](#my-plans-for-the-websocket-client)
+
 0.0.7.3 - 06/04/2018
 * Set cfscrape >=1.9.5
 

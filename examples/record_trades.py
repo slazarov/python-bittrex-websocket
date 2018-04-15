@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# bittrex_websocket/examples/record_trades.py
+# /examples/record_trades.py
 # Stanislav Lazarov
 
 # Sample script to show how subscribe_to_trades() works.
@@ -19,26 +19,27 @@ from bittrex_websocket.websocket_client import BittrexSocket
 
 def main():
     class MySocket(BittrexSocket):
-        def on_open(self):
+        def __init__(self):
+            super(MySocket, self).__init__()
             self.trade_history = {}
 
-        def on_trades(self, msg):
+        def on_public(self, msg):
             # Create entry for the ticker in the trade_history dict
-            if msg['ticker'] not in self.trade_history:
-                self.trade_history[msg['ticker']] = []
+            if msg['M'] not in self.trade_history:
+                self.trade_history[msg['M']] = []
             # Add history nounce
-            self.trade_history[msg['ticker']].append(msg)
+            self.trade_history[msg['M']].append(msg)
             # Ping
-            print('[Trades]: {}'.format(msg['ticker']))
+            print('[Trades]: {}'.format(msg['M']))
 
     # Create the socket instance
     ws = MySocket()
     # Enable logging
     ws.enable_log()
     # Define tickers
-    tickers = ['BTC-ETH', 'BTC-XMR']
+    tickers = ['BTC-ETH', 'BTC-NEO', 'BTC-ZEC', 'ETH-NEO', 'ETH-ZEC']
     # Subscribe to trade fills
-    ws.subscribe_to_trades(tickers)
+    ws.subscribe_to_exchange_deltas(tickers)
 
     while len(set(tickers) - set(ws.trade_history)) > 0:
         sleep(1)
@@ -48,6 +49,7 @@ def main():
             for trade in ws.trade_history[ticker]:
                 print(trade)
         ws.disconnect()
+        sleep(10)
 
 
 if __name__ == "__main__":

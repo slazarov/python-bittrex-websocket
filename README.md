@@ -78,8 +78,6 @@ To successfully install the package the following dependencies must be met:
 
 * [requests[security]](https://github.com/requests/requests)
   * g++, make, libffi-dev, openssl-dev
-* [signalr-client](https://github.com/slazarov/signalr-client-py)
-  * g++, make
 
 I have added a Dockerfile for а quick setup. Please check the docker folder. The example.py is not always up to date.
 

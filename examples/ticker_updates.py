@@ -17,8 +17,8 @@ from time import sleep
 
 def main():
     class MySocket(BittrexSocket):
-        def __init__(self):
-            super(MySocket, self).__init__()
+        def __init__(self, url=None):
+            super(MySocket, self).__init__(url)
             self.ticker_updates_container = {}
 
         def on_public(self, msg):

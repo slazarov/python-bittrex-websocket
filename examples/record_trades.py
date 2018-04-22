@@ -19,8 +19,8 @@ from bittrex_websocket.websocket_client import BittrexSocket
 
 def main():
     class MySocket(BittrexSocket):
-        def __init__(self):
-            super(MySocket, self).__init__()
+        def __init__(self, url=None):
+            super(MySocket, self).__init__(url)
             self.trade_history = {}
 
         def on_public(self, msg):

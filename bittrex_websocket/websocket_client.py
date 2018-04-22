@@ -5,7 +5,6 @@
 # Stanislav Lazarov
 
 from __future__ import print_function
-# from signalr import Connection
 from ._signalr import Connection
 import logging
 from ._logger import add_stream_logger, remove_stream_logger
@@ -14,7 +13,11 @@ from ._queue_events import *
 from ._constants import EventTypes, BittrexParameters, BittrexMethods, ErrorMessages
 from ._auxiliary import process_message, create_signature, BittrexConnection
 from ._abc import WebSocket
-from requests import Session
+
+try:
+    from cfscrape import create_scraper as Session
+except ImportError:
+    from requests import Session
 from time import sleep
 
 try:
@@ -30,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 class BittrexSocket(WebSocket):
 
-    def __init__(self):
+    def __init__(self, url=None):
         self.control_queue = None
         self.invokes = []
         self.tickers = None
@@ -39,6 +42,7 @@ class BittrexSocket(WebSocket):
         self.credentials = None
         self._on_public_callback = None
         self._on_private_callback = None
+        self.url = BittrexParameters.URL if url is None else url
         self._assign_callbacks()
         self._start_main_thread()
 
@@ -86,7 +90,7 @@ class BittrexSocket(WebSocket):
         thread.start()
 
     def _connection_handler(self):
-        logger.info('Establishing connection to Bittrex.')
+        logger.info('Establishing connection to Bittrex through {}.'.format(self.url))
         try:
             e = self.connection.conn.start()
             if e.code == 1000:

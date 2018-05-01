@@ -4,7 +4,7 @@
 # /examples/record_trades.py
 # Stanislav Lazarov
 
-# Sample script to show how subscribe_to_trades() works.
+# Sample script to show how subscribe_to_exchange_deltas() works.
 # Overview:
 #   Creates custom trade_history dict with on_open method.
 #   When an order is executed, the fill is recorded in trade_history.

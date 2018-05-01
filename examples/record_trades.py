@@ -6,7 +6,7 @@
 
 # Sample script to show how subscribe_to_exchange_deltas() works.
 # Overview:
-#   Creates custom trade_history dict with on_open method.
+#   Creates custom trade_history dict.
 #   When an order is executed, the fill is recorded in trade_history.
 #   When each ticker has received an order, the script disconnects.
 

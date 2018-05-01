@@ -74,7 +74,7 @@ class BittrexSocket(WebSocket):
                 self.control_queue.task_done()
 
     def _handle_connect(self):
-        connection = Connection(BittrexParameters.URL, Session())
+        connection = Connection(self.url, Session())
         hub = connection.register_hub(BittrexParameters.HUB)
         connection.received += self._on_debug
         connection.error += self.on_error

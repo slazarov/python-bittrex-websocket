@@ -16,6 +16,7 @@ class EventTypes(Constant):
     CONNECT = 'CONNECT'
     SUBSCRIBE = 'SUBSCRIBE'
     CLOSE = 'CLOSE'
+    RECONNECT = 'RECONNECT'
 
 
 class BittrexParameters(Constant):
@@ -43,3 +44,7 @@ class BittrexMethods(Constant):
 
 class ErrorMessages(Constant):
     INVALID_TICKER_INPUT = 'Tickers must be submitted as a list.'
+
+
+class OtherConstants(Constant):
+    CF_SESSION_TYPE = '<class \'cfscrape.CloudflareScraper\'>'

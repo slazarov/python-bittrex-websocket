@@ -49,7 +49,7 @@ class Connection(signalr.Connection, object):
                         self.__transport.send(event.payload)
                     elif event.type == 'ERROR':
                         code = self.assign_error_code(event.payload)
-                        return ErrorEvent(code, event.payload.message)
+                        return ErrorEvent(code, event.payload.args[0])
                     elif event.type == 'CLOSE':
                         self.is_open = False
                         self.__listener_thread.join()
@@ -73,7 +73,7 @@ class Connection(signalr.Connection, object):
 
     @staticmethod
     def assign_error_code(error):
-        if error.message == 'Connection is already closed.':
+        if error.args[0] == 'Connection is already closed.':
             return 1006
         else:
             return -1

@@ -34,6 +34,16 @@ class SubscribeEvent(Event):
         self.payload = payload
 
 
+class ReconnectEvent(Event):
+    """
+    Handles the event reconnection.
+    """
+
+    def __init__(self, error_message):
+        self.type = EventTypes.RECONNECT
+        self.error_message = error_message
+
+
 class CloseEvent(Event):
     """
     Handles the event of closing the socket.

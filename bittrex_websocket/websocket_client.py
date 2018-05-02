@@ -10,7 +10,7 @@ import logging
 from ._logger import add_stream_logger, remove_stream_logger
 from threading import Thread
 from ._queue_events import *
-from ._constants import EventTypes, BittrexParameters, BittrexMethods, ErrorMessages
+from ._constants import EventTypes, BittrexParameters, BittrexMethods, ErrorMessages, OtherConstants
 from ._auxiliary import process_message, create_signature, BittrexConnection
 from ._abc import WebSocket
 
@@ -68,6 +68,8 @@ class BittrexSocket(WebSocket):
                     self._handle_connect()
                 elif event.type == EventTypes.SUBSCRIBE:
                     self._handle_subscribe(event.invoke, event.payload)
+                elif event.type == EventTypes.RECONNECT:
+                    self._handle_reconnect(event.error_message)
                 elif event.type == EventTypes.CLOSE:
                     self.connection.conn.close()
                     break
@@ -89,28 +91,40 @@ class BittrexSocket(WebSocket):
         self.threads.append(thread)
         thread.start()
 
+    def _handle_reconnect(self, error_message):
+        if error_message is not None:
+            logger.error('{}.'.format(error_message))
+        logger.error('Initiating reconnection procedure')
+        events = []
+        for item in self.invokes:
+            event = SubscribeEvent(item['invoke'], [item['ticker']])
+            events.append(event)
+        # Reset previous connection
+        self.invokes, self.connection = [], None
+        # Restart
+        self.control_queue.put(ConnectEvent())
+        for event in events:
+            self.control_queue.put(event)
+
     def _connection_handler(self):
-        logger.info('Establishing connection to Bittrex through {}.'.format(self.url))
+        if str(type(Session())) == OtherConstants.CF_SESSION_TYPE:
+            logger.info('Establishing connection to Bittrex through {}.'.format(self.url))
+            logger.info('cfscrape detected, using it to bypass Cloudflare.')
+        else:
+            logger.info('Establishing connection to Bittrex through {}.'.format(self.url))
         try:
             e = self.connection.conn.start()
             if e.code == 1000:
                 logger.info('Bittrex connection successfully closed.')
             elif e.code == 1006:
-                logger.error('{}. Initiating reconnection procedure'.format(e.message))
-                events = []
-                for item in self.invokes:
-                    event = SubscribeEvent(item['invoke'], [item['ticker']])
-                    events.append(event)
-                # Reset previous connection
-                self.invokes, self.connection = [], None
-                # Restart
-                self.control_queue.put(ConnectEvent())
-                for event in events:
-                    self.control_queue.put(event)
+                event = ReconnectEvent(e.message)
+                self.control_queue.put(event)
             elif e.code == -1:
                 logger.error(
                     'Undocumented error message received with code -1 and payload: {}. '
                     'Report to https://github.com/slazarov/python-bittrex-websocket'.format(e.message))
+                event = ReconnectEvent(None)
+                self.control_queue.put(event)
         except Exception as e:
             print(e)
 

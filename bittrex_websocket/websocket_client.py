@@ -10,7 +10,7 @@ import logging
 from ._logger import add_stream_logger, remove_stream_logger
 from threading import Thread
 from ._queue_events import *
-from ._constants import EventTypes, BittrexParameters, BittrexMethods, ErrorMessages, OtherConstants
+from .constants import EventTypes, BittrexParameters, BittrexMethods, ErrorMessages, OtherConstants
 from ._auxiliary import process_message, create_signature, BittrexConnection
 from ._abc import WebSocket
 

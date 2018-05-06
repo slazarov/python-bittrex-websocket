@@ -4,7 +4,7 @@
 # bittrex_websocket/_queue_events.py
 # Stanislav Lazarov
 
-from ._constants import EventTypes
+from .constants import EventTypes
 
 
 class Event(object):

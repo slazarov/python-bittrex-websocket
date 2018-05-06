@@ -198,7 +198,15 @@ class BittrexSocket(WebSocket):
     # =======================
 
     def _on_public(self, args):
-        self._on_public_callback.on_change(process_message(args))
+        msg = process_message(args)
+        if 'D' in msg:
+            if len(msg['D'][0]) > 3:
+                msg['invoke_type'] = BittrexMethods.SUBSCRIBE_TO_SUMMARY_DELTAS
+            else:
+                msg['invoke_type'] = BittrexMethods.SUBSCRIBE_TO_SUMMARY_LITE_DELTAS
+        else:
+            msg['invoke_type'] = BittrexMethods.SUBSCRIBE_TO_EXCHANGE_DELTAS
+        self._on_public_callback.on_change(msg)
 
     def _on_private(self, args):
         self._on_private_callback.on_change(process_message(args))

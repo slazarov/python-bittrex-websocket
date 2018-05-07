@@ -4,13 +4,13 @@
 # /examples/record_trades.py
 # Stanislav Lazarov
 
-# Sample script to show how subscribe_to_exchange_deltas() works.
+# Sample script showing how subscribe_to_exchange_deltas() works.
 
 # Overview:
 # ---------
 # 1) Creates custom trade_history dict.
 # 2) When an order is executed, the fill is recorded in trade_history.
-# 3)  When each ticker has received an order, the script disconnects.
+# 3) When each ticker has received an order, the script disconnects.
 
 from __future__ import print_function
 from time import sleep

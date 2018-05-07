@@ -1,0 +1,64 @@
+0.0.7.3 - 06/04/2018
+- Set cfscrape >=1.9.5
+
+0.0.7.2 - 31/03/2018
+- Added third connection URL.
+
+0.0.7.1 - 31/03/2018
+-Removed wsaccel: no particular socket benefits
+- Fixed RecursionError as per Issue #52
+
+0.0.7.0 - 25/02/2018
+- New reconnection methods implemented. Problem was within gevent, because connection failures within it are not raised in the main script.
+- Added wsaccel for better socket performance.
+- Set websocket-client minimum version to 0.47.0
+
+0.0.6.4 - 24/02/2018
+- Fixed order book syncing bug when more than 1 connection is online due to wrong connection/thread name.
+
+0.0.6.3 - 18/02/2018
+- Major changes to how the code handles order book syncing. Syncing is done significantly faster than previous versions, i.e full sync of all Bittrex tickers takes ca. 4 minutes.
+- Fixed on_open bug as per Issue #21
+
+0.0.6.2.2
+- Update cfscrape>=1.9.2 and gevent>=1.3a1
+- Reorder imports in websocket_client to safeguard against SSL recursion errors.
+
+0.0.6.2
+- Every 5400s (1hr30) the script will force reconnection.
+- Every reconnection (including the above) will be done with a fresh cookie
+- Upon reconnection the script will check if the connection has been running for more than 600s (10mins). If it has been running for less it will use the backup url.
+
+0.0.6.1
+- Set websocket-client==0.46.0
+
+0.0.6
+- Reconnection - Experimental
+- Fixed a bug when subscribing to multiple subscription types at once resulted in opening unnecessary connections even though there is sufficient capacity in the existing Commit 7fd21c
+- Numerous code optimizations
+
+0.0.5.1
+- Updated cfscrape minimum version requirement (Issue #12).
+
+0.0.5
+- Fixed Issue #9 relating to subscribe_to_orderbook_update handling in internal method _on_tick_update
+- Added custom logger as per PR #10 and Issue #8 in order to avoid conflicts with other basicConfig setups
+- Added two new methods enable_log and disable_log. Check Other Methods.
+- Logging is now disabled on startup. You have to enable it.
+- Experimental: Calling subscribe_to_ticker_update without a specified ticker subscribes to all tickers in the message stream (Issue #4).
+- Minor code optimizations (removed unnecessary class Common)
+
+0.0.4
+- Changed the behaviour of how on_ticker_update channel works: The message now contains a single ticker instead of a dictionary of all subscribed tickers.
+
+0.0.3
+- Removed left over code from initial release version that was throwing errors (had no effect on performance).
+
+0.0.2
+- Additional un/subscribe and order book sync state querying methods added.
+- Better connection and thread management.
+- Code optimisations
+- Better code documentation
+- Added additional connection URLs
+
+0.0.1 - Initial release on github.

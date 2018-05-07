@@ -1,2 +1,109 @@
-.. image:: data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDIxLjEuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIKCSBpZD0ic3ZnMiIgaW5rc2NhcGU6dmVyc2lvbj0iMC40MyIgc29kaXBvZGk6ZG9jYmFzZT0iL2hvbWUvc2RlaWJlbCIgc29kaXBvZGk6ZG9jbmFtZT0ibG9nby1weXRob24tZ2VuZXJpYy5zdmciIHNvZGlwb2RpOnZlcnNpb249IjAuMzIiIHhtbG5zOmNjPSJodHRwOi8vd2ViLnJlc291cmNlLm9yZy9jYy8iIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIgeG1sbnM6aW5rc2NhcGU9Imh0dHA6Ly93d3cuaW5rc2NhcGUub3JnL25hbWVzcGFjZXMvaW5rc2NhcGUiIHhtbG5zOnJkZj0iaHR0cDovL3d3dy53My5vcmcvMTk5OS8wMi8yMi1yZGYtc3ludGF4LW5zIyIgeG1sbnM6c29kaXBvZGk9Imh0dHA6Ly9pbmtzY2FwZS5zb3VyY2Vmb3JnZS5uZXQvRFREL3NvZGlwb2RpLTAuZHRkIiB4bWxuczpzdmc9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIgoJIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IiB2aWV3Qm94PSIwIDAgODAgODAuMiIKCSBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCA4MCA4MC4yOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzAwODJENzt9Cgkuc3Qxe2ZpbGw6dXJsKCNwYXRoMTk0OF8xXyk7fQoJLnN0MntmaWxsOnVybCgjcGF0aDE5NTBfMV8pO30KPC9zdHlsZT4KPHNvZGlwb2RpOm5hbWVkdmlldyAgYm9yZGVyY29sb3I9IiM2NjY2NjYiIGJvcmRlcm9wYWNpdHk9IjEuMCIgaWQ9ImJhc2UiIGlua3NjYXBlOmN1cnJlbnQtbGF5ZXI9InN2ZzIiIGlua3NjYXBlOmN4PSIyNDMuMDI0OTkiIGlua3NjYXBlOmN5PSI3MS44ODc0OTciIGlua3NjYXBlOnBhZ2VvcGFjaXR5PSIwLjAiIGlua3NjYXBlOnBhZ2VzaGFkb3c9IjIiIGlua3NjYXBlOndpbmRvdy1oZWlnaHQ9IjU0MyIgaW5rc2NhcGU6d2luZG93LXdpZHRoPSI3OTEiIGlua3NjYXBlOndpbmRvdy14PSIwIiBpbmtzY2FwZTp3aW5kb3cteT0iMCIgaW5rc2NhcGU6em9vbT0iMS40MzQwMDg5IiBwYWdlY29sb3I9IiNmZmZmZmYiPgoJPC9zb2RpcG9kaTpuYW1lZHZpZXc+CjxnPgoJPGcgaWQ9IlN5bWJvbHMiPgoJCTxnIGlkPSJiaXR0cmV4LWxvZ28tbWFyayI+CgkJCTxwYXRoIGlkPSJMb2dvLU1hcmsiIGNsYXNzPSJzdDAiIGQ9Ik0yNC4yLDEyLjh2OC41aDUuM3YtMy4yaDMxLjl2MzEuOUgyOS42VjMyLjloLTUuM3YyMi41aDQyLjVWMTIuOEgyNC4yeiBNMTMuMiwyNC44djQyLjYKCQkJCWg0Mi41di04LjhoLTUuM1Y2MkgxOC41VjMwLjFoMzEuOXYxNi44aDUuM1YyNC44SDEzLjJ6Ii8+CgkJPC9nPgoJPC9nPgoJPGcgaWQ9ImcyMzAzIj4KCQkKCQkJPGxpbmVhckdyYWRpZW50IGlkPSJwYXRoMTk0OF8xXyIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiIHgxPSIyNjQuOTkxNCIgeTE9Ii03ODIuMjc1NiIgeDI9IjMxMi42ODM1IiB5Mj0iLTgyMy4zMDgzIiBncmFkaWVudFRyYW5zZm9ybT0ibWF0cml4KDAuNTYyNSAwIDAgLTAuNTY4IC0xNTAuMjYxNiAtNDQyLjkxMDYpIj4KCQkJPHN0b3AgIG9mZnNldD0iMCIgc3R5bGU9InN0b3AtY29sb3I6IzVBOUZENCIvPgoJCQk8c3RvcCAgb2Zmc2V0PSIxIiBzdHlsZT0ic3RvcC1jb2xvcjojMzA2OTk4Ii8+CgkJPC9saW5lYXJHcmFkaWVudD4KCQk8cGF0aCBpZD0icGF0aDE5NDgiIGNsYXNzPSJzdDEiIGQ9Ik0yNCwwYy0yLDAtMy45LDAuMi01LjYsMC41Yy01LDAuOS01LjksMi43LTUuOSw2LjFWMTFoMTEuN3YxLjVIMTIuNkg4LjJjLTMuNCwwLTYuNCwyLTcuMyw1LjkKCQkJYy0xLjEsNC41LTEuMSw3LjMsMCwxMS45YzAuOCwzLjUsMi44LDUuOSw2LjIsNS45aDRWMzFjMC0zLjksMy4zLTcuMyw3LjMtNy4zaDExLjdjMy4zLDAsNS45LTIuNyw1LjktNlY2LjYKCQkJYzAtMy4yLTIuNy01LjYtNS45LTYuMUMyOC4xLDAuMSwyNiwwLDI0LDB6IE0xNy43LDMuNmMxLjIsMCwyLjIsMSwyLjIsMi4yYzAsMS4yLTEsMi4yLTIuMiwyLjJjLTEuMiwwLTIuMi0xLTIuMi0yLjIKCQkJQzE1LjUsNC42LDE2LjUsMy42LDE3LjcsMy42eiIvPgoJCQoJCQk8bGluZWFyR3JhZGllbnQgaWQ9InBhdGgxOTUwXzFfIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeDE9IjM4Ni44ODU1IiB5MT0iLTkwMi43MzYzIiB4Mj0iMzY5Ljg1NDciIHkyPSItODc4LjY0MDciIGdyYWRpZW50VHJhbnNmb3JtPSJtYXRyaXgoMC41NjI1IDAgMCAtMC41NjggLTE1MC4yNjE2IC00NDIuOTEwNikiPgoJCQk8c3RvcCAgb2Zmc2V0PSIwIiBzdHlsZT0ic3RvcC1jb2xvcjojRkZENDNCIi8+CgkJCTxzdG9wICBvZmZzZXQ9IjEiIHN0eWxlPSJzdG9wLWNvbG9yOiNGRkU4NzMiLz4KCQk8L2xpbmVhckdyYWRpZW50PgoJCTxwYXRoIGlkPSJwYXRoMTk1MCIgY2xhc3M9InN0MiIgZD0iTTY4LjgsNDMuNXY1LjJjMCw0LTMuNCw3LjQtNy4zLDcuNEg0OS44Yy0zLjIsMC01LjksMi43LTUuOSw2djExLjJjMCwzLjIsMi44LDUsNS45LDYKCQkJYzMuNywxLjEsNy4zLDEuMywxMS43LDBjMy0wLjksNS45LTIuNiw1LjktNnYtNC41SDU1Ljd2LTEuNWgxMS43aDUuOWMzLjQsMCw0LjctMi40LDUuOS01LjljMS4yLTMuNywxLjItNy4yLDAtMTEuOQoJCQljLTAuOC0zLjQtMi41LTUuOS01LjktNS45SDY4Ljh6IE02Mi4yLDcxLjhjMS4yLDAsMi4yLDEsMi4yLDIuMmMwLDEuMi0xLDIuMi0yLjIsMi4yYy0xLjIsMC0yLjItMS0yLjItMi4yCgkJCUM2MCw3Mi44LDYxLDcxLjgsNjIuMiw3MS44eiIvPgoJPC9nPgo8L2c+Cjwvc3ZnPgo=
-    :width: 60px
+|logo| bittrex-websocket
+=====================
+
+|pypi-v2| |pypi-pyversions2| |pypi-l2| |pypi-wheel2|
+
+.. |pypi-v2| image:: https://img.shields.io/pypi/v/bittrex-websocket.svg
+    :target: https://pypi.python.org/pypi/bittrex-websocket
+
+.. |pypi-pyversions2| image:: https://img.shields.io/pypi/pyversions/bittrex-websocket.svg
+    :target: https://pypi.python.org/pypi/bittrex-websocket
+
+.. |pypi-l2| image:: https://img.shields.io/pypi/l/bittrex-websocket.svg
+    :target: https://pypi.python.org/pypi/bittrex-websocket
+
+.. |pypi-wheel2| image:: https://img.shields.io/pypi/wheel/bittrex-websocket.svg
+    :target: https://pypi.python.org/pypi/bittrex-websocket
+
+.. |logo| image:: /resources/py_btrx.svg
+   :width: 60px
+
+What is ``bittrex-websocket``?
+--------------------------
+Python Bittrex WebSocket (PBW) is the first unofficial Python wrapper for
+the `Bittrex Websocket API <https://github.com/Bittrex/bittrex.github.io>`_.
+It provides users with a simple and easy to use interface to the `Bittrex Exchange <https://bittrex.com>`_.
+
+Users can use it to access real-time public data (e.g exchange status, summary ticks and order fills) and account-level data such as order and balance status. The goal of the package is to serve as a foundation block which users can use to build upon their applications. Examples usages can include maintaining live order books, recording trade history, analysing order flow and many more.
+
+If you prefer ``asyncio``, then take a look at my other library: `bittrex-websocket-aio <https://github.com/slazarov/python-bittrex-websocket-aio>`_.
+
+Documentation
+    http://python-bittrex-websocket-docs.readthedocs.io/en/latest/
+    
+Getting started/How-to
+    http://python-bittrex-websocket-docs.readthedocs.io/en/latest/howto.html
+    
+Methods
+    http://python-bittrex-websocket-docs.readthedocs.io/en/latest/methods.html
+    
+Changelog
+    http://python-bittrex-websocket-docs.readthedocs.io/en/latest/changelog.html#bittrex-websocket
+    
+I am constantly working on new features. Make sure you stay up to date by regularly checking the official docs!
+
+**Having an issue or a question? Found a bug or perhaps you want to contribute? Open an issue!**
+
+Quick Start
+-----------
+.. code:: bash
+
+    pip install bittrex-websocket
+   
+.. code:: python
+
+    #!/usr/bin/python
+    # /examples/ticker_updates.py
+    
+    # Sample script showing how subscribe_to_exchange_deltas() works.
+
+    # Overview:
+    # ---------
+    # 1) Creates a custom ticker_updates_container dict.
+    # 2) Subscribes to N tickers and starts receiving market data.
+    # 3) When information is received, checks if the ticker is
+    #    in ticker_updates_container and adds it if not.
+    # 4) Disconnects when it has data information for each ticker.
+
+    from bittrex_websocket.websocket_client import BittrexSocket
+    from time import sleep
+
+    def main():
+        class MySocket(BittrexSocket):
+
+            def on_public(self, msg):
+                name = msg['M']
+                if name not in ticker_updates_container:
+                    ticker_updates_container[name] = msg
+                    print('Just received market update for {}.'.format(name))
+
+        # Create container
+        ticker_updates_container = {}
+        # Create the socket instance
+        ws = MySocket()
+        # Enable logging
+        ws.enable_log()
+        # Define tickers
+        tickers = ['BTC-ETH', 'BTC-NEO', 'BTC-ZEC', 'ETH-NEO', 'ETH-ZEC']
+        # Subscribe to ticker information
+        for ticker in tickers:
+            sleep(0.01)
+            ws.subscribe_to_exchange_deltas([ticker])
+
+        # Users can also subscribe without introducing delays during invoking but
+        # it is the recommended way when you are subscribing to a large list of tickers.
+        # ws.subscribe_to_exchange_deltas(tickers)
+
+        while len(ticker_updates_container) < len(tickers):
+            sleep(1)
+        else:
+            print('We have received updates for all tickers. Closing...')
+            ws.disconnect()
+            sleep(10)
+
+    if __name__ == "__main__":
+        main()
+
+Disclaimer
+----------
+I am not associated with Bittrex. Use the library at your own risk, I don't bear any responsibility if you end up losing your money.

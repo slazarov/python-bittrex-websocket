@@ -28,6 +28,8 @@ Users can use it to access real-time public data (e.g exchange status, summary t
 
 If you prefer ``asyncio``, then take a look at my other library: `bittrex-websocket-aio <https://github.com/slazarov/python-bittrex-websocket-aio>`_.
 
+--------------
+
 Documentation
     http://python-bittrex-websocket-docs.readthedocs.io/en/latest/
     

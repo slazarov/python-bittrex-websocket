@@ -1,5 +1,6 @@
 import signalr
 from threading import Thread
+from websocket import create_connection
 
 import logging
 
@@ -10,10 +11,16 @@ try:
 except ImportError:
     from queue import Queue
 
+try:
+    from ujson import dumps, loads
+except:
+    from json import dumps, loads
+
 
 class Connection(signalr.Connection, object):
     def __init__(self, url, session):
         super(Connection, self).__init__(url, session)
+        self.__transport = WebSocketsTransport(session, self)
         self.error_trap = None
         self.queue = Queue()
         self.__queue_handler = None
@@ -77,6 +84,22 @@ class Connection(signalr.Connection, object):
             return 1006
         else:
             return -1
+
+
+# Add ujson support
+class WebSocketsTransport(signalr.transports._ws_transport.WebSocketsTransport, object):
+    def __init__(self, session, connection):
+        super(WebSocketsTransport, self).__init__(session, connection)
+        self.ws = None
+        self.__requests = {}
+
+    def _handle_notification(self, message):
+        if len(message) > 0:
+            data = loads(message)
+            self._connection.received.fire(**data)
+
+    def send(self, data):
+        self.ws.send(dumps(data))
 
 
 class QueueEvent(object):

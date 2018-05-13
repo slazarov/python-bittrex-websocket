@@ -39,6 +39,14 @@ def create_signature(api_secret, challenge):
     return api_sign
 
 
+def clear_queue(q):
+    q.mutex.acquire()
+    q.queue.clear()
+    q.all_tasks_done.notify_all()
+    q.unfinished_tasks = 1
+    q.mutex.release()
+
+
 class BittrexConnection(object):
     def __init__(self, conn, hub):
         self.conn = conn

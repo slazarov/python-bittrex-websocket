@@ -49,7 +49,7 @@ def main():
             for trade in trade_history[ticker]:
                 print(trade)
         ws.disconnect()
-        sleep(10)
+        # sleep(10000)
 
 
 if __name__ == "__main__":

@@ -139,6 +139,11 @@ class BittrexSocket(WebSocket):
             self.control_queue.put(CloseEvent())
 
     def _connection_handler(self):
+        def _get_err_msg(exception):
+            error_message = exception.args[0] if hasattr(exception, 'args') else exception.message
+            error_message = 'Exception = {}, Message = <{}>'.format(type(exception), error_message)
+            return error_message
+
         if str(type(Session())) == OtherConstants.CF_SESSION_TYPE:
             logger.info('Establishing connection to Bittrex through {}.'.format(self.url))
             logger.info('cfscrape detected, will try to bypass Cloudflare if enabled.')
@@ -149,16 +154,16 @@ class BittrexSocket(WebSocket):
         except WebSocketConnectionClosedByUser:
             logger.info(InfoMessages.SUCCESSFUL_DISCONNECT)
         except WebSocketConnectionClosedException as e:
-            error_message = 'Exception = {}, Message = {}'.format(type(e), e.message)
-            event = ReconnectEvent(error_message)
-            self.control_queue.put(event)
+            self.control_queue.put(ReconnectEvent(_get_err_msg(e)))
+        except TimeoutError as e:
+            self.control_queue.put(ReconnectEvent(_get_err_msg(e)))
         except ConnectionError:
             pass
             # Commenting it for the time being. It should be handled in _handle_subscribe.
             # event = ReconnectEvent(None)
             # self.control_queue.put(event)
         except Exception as e:
-            logger.error(ErrorMessages.UNHANDLED_EXCEPTION.format(type(e), e.message))
+            logger.error(ErrorMessages.UNHANDLED_EXCEPTION.format(_get_err_msg(e)))
             self.disconnect()
             # event = ReconnectEvent(None)
             # self.control_queue.put(event)

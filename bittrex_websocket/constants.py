@@ -48,7 +48,7 @@ class BittrexMethods(Constant):
 
 class ErrorMessages(Constant):
     INVALID_TICKER_INPUT = 'Tickers must be submitted as a list.'
-    UNHANDLED_EXCEPTION = '\nUnhandled exception {} with payload <{}>.' \
+    UNHANDLED_EXCEPTION = '\nUnhandled {}.' \
                           '\nAuto-reconnection is disabled for unhandled exceptions.' \
                           '\nReport to https://github.com/slazarov/python-bittrex-websocket.'
     CONNECTION_TIMEOUTED = 'Connection timeout after {} seconds. Sending a reconnection signal.'

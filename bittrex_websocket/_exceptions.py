@@ -1,7 +1,7 @@
-from requests.exceptions import HTTPError, MissingSchema
+from requests.exceptions import HTTPError, MissingSchema, ConnectionError
 from urllib3.contrib.pyopenssl import SocketError
-from websocket import WebSocketConnectionClosedException, WebSocketBadStatusException
-from requests.exceptions import ConnectionError
+from urllib3.exceptions import TimeoutError
+from websocket import WebSocketConnectionClosedException, WebSocketBadStatusException, WebSocketTimeoutException
 
 
 class WebSocketConnectionClosedByUser(Exception):

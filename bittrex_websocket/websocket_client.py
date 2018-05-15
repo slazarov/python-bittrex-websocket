@@ -140,8 +140,7 @@ class BittrexSocket(WebSocket):
 
     def _connection_handler(self):
         def _get_err_msg(exception):
-            error_message = exception.args[0] if hasattr(exception, 'args') else exception.message
-            error_message = 'Exception = {}, Message = <{}>'.format(type(exception), error_message)
+            error_message = 'Exception = {}, Message = <{}>'.format(type(exception), exception)
             return error_message
 
         if str(type(Session())) == OtherConstants.CF_SESSION_TYPE:

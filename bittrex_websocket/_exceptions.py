@@ -1,6 +1,6 @@
 from requests.exceptions import HTTPError, MissingSchema, ConnectionError
 from urllib3.contrib.pyopenssl import SocketError
-from urllib3.exceptions import TimeoutError
+from urllib3.exceptions import TimeoutError as TimeoutErrorUrlLib
 from websocket import WebSocketConnectionClosedException, WebSocketBadStatusException, WebSocketTimeoutException
 
 

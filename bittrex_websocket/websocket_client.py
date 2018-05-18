@@ -154,6 +154,8 @@ class BittrexSocket(WebSocket):
             logger.info(InfoMessages.SUCCESSFUL_DISCONNECT)
         except WebSocketConnectionClosedException as e:
             self.control_queue.put(ReconnectEvent(_get_err_msg(e)))
+        except TimeoutErrorUrlLib as e:
+            self.control_queue.put(ReconnectEvent(_get_err_msg(e)))
         except TimeoutError as e:
             self.control_queue.put(ReconnectEvent(_get_err_msg(e)))
         except ConnectionError:

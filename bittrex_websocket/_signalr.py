@@ -1,6 +1,7 @@
 import signalr
 from threading import Thread
 from ._exceptions import WebSocketConnectionClosedByUser
+from .constants import OtherConstants
 
 import logging
 
@@ -34,6 +35,7 @@ class Connection(signalr.Connection, object):
         listener = self.__transport.start()
 
         def wrapped_listener():
+            self.is_open = True
             while self.is_open:
                 try:
                     listener()
@@ -45,8 +47,7 @@ class Connection(signalr.Connection, object):
             else:
                 self.started = False
 
-        self.is_open = True
-        self.__listener_thread = Thread(target=wrapped_listener, name='SignalrListener')
+        self.__listener_thread = Thread(target=wrapped_listener, name=OtherConstants.SIGNALR_LISTENER_THREAD)
         self.__listener_thread.daemon = True
         self.__listener_thread.start()
         self.queue_handler()
@@ -64,6 +65,8 @@ class Connection(signalr.Connection, object):
                     elif event.type == 'CLOSE':
                         self.exit_gracefully()
                         raise WebSocketConnectionClosedByUser('Connection closed by user.')
+                    elif event.type == 'FORCE_CLOSE':
+                        break
             finally:
                 self.queue.task_done()
 
@@ -72,7 +75,12 @@ class Connection(signalr.Connection, object):
         self.queue.put(event)
 
     def close(self):
+        self.exit_gracefully()
         event = QueueEvent(event_type='CLOSE', payload=None)
+        self.queue.put(event)
+
+    def force_close(self):
+        event = QueueEvent(event_type='FORCE_CLOSE', payload=None)
         self.queue.put(event)
 
     def exit_gracefully(self):

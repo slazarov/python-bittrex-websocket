@@ -109,7 +109,7 @@ class BittrexSocket(WebSocket):
     def _handle_reconnect(self, error_message):
         if error_message is not None:
             logger.error('{}.'.format(error_message))
-        logger.debug('Initiating reconnection procedure')
+        logger.debug('Initiating reconnection procedure.')
         for i, thread in enumerate(self.threads):
             if thread.name == OtherConstants.SOCKET_CONNECTION_THREAD:
                 thread.join()
@@ -181,6 +181,7 @@ class BittrexSocket(WebSocket):
                 for event in self.control_queue.queue:
                     self.invokes.append({'invoke': event.invoke, 'ticker': event.payload[0][0]})
                 clear_queue(self.control_queue)
+                self.connection.conn.force_close()
                 self.control_queue.put(ReconnectEvent(None))
                 return
         else:

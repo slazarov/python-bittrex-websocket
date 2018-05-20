@@ -197,7 +197,18 @@ class BittrexSocket(WebSocket):
                 self.invokes.append({'invoke': invoke, 'ticker': key})
                 logger.info('Retrieving authentication challenge.')
             elif invoke == BittrexMethods.AUTHENTICATE:
-                self.connection.corehub.server.invoke(invoke, payload[0], payload[1])
+                key = payload[0]
+                challenge = payload[1]
+                if type(key) is not str:
+                    logger.error('API key is not transferred. Private authentication will fail.'
+                                 '\nAPI key type is {}'
+                                 '\nReport to https://github.com/slazarov/python-bittrex-websocket.'.format(type(key)))
+                if type(challenge) is not str:
+                    logger.error('Challenge is not transferred. Private authentication will fail.'
+                                 '\nChallenge type is {}'
+                                 '\nReport to https://github.com/slazarov/python-bittrex-websocket.'.format(
+                        type(challenge)))
+                self.connection.corehub.server.invoke(invoke, key, challenge)
                 logger.info('Challenge retrieved. Sending authentication. Awaiting messages...')
                 # No need to append invoke list, because AUTHENTICATE is called from successful GET_AUTH_CONTENT.
             else:

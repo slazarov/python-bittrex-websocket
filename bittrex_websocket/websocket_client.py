@@ -150,13 +150,13 @@ class BittrexSocket(WebSocket):
             logger.info('Establishing connection to Bittrex through {}.'.format(self.url))
         try:
             self.connection.conn.start()
+        except TimeoutError as e:
+            self.control_queue.put(ReconnectEvent(_get_err_msg(e)))
         except WebSocketConnectionClosedByUser:
             logger.info(InfoMessages.SUCCESSFUL_DISCONNECT)
         except WebSocketConnectionClosedException as e:
             self.control_queue.put(ReconnectEvent(_get_err_msg(e)))
         except TimeoutErrorUrlLib as e:
-            self.control_queue.put(ReconnectEvent(_get_err_msg(e)))
-        except TimeoutError as e:
             self.control_queue.put(ReconnectEvent(_get_err_msg(e)))
         except ConnectionError:
             pass
@@ -300,6 +300,8 @@ class BittrexSocket(WebSocket):
                 msg = process_message(kwargs['R'])
                 if msg is not None:
                     msg['invoke_type'] = invoke
+                    # Assign ticker name before Bittrex fixes that payload
+                    msg['ticker'] = self.invokes[int(kwargs['I'])]['ticker']
                     self._on_public_callback.on_change(msg)
 
     # ======================

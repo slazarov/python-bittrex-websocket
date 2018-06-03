@@ -10,7 +10,7 @@ from ._logger import add_stream_logger, remove_stream_logger
 from threading import Thread
 from ._queue_events import *
 from .constants import EventTypes, BittrexParameters, BittrexMethods, ErrorMessages, InfoMessages, OtherConstants
-from ._auxiliary import process_message, create_signature, clear_queue, BittrexConnection
+from ._auxiliary import process_message, create_signature, clear_queue, identify_payload, BittrexConnection
 from ._abc import WebSocket
 
 try:
@@ -177,9 +177,9 @@ class BittrexSocket(WebSocket):
             i += 1
             if i == BittrexParameters.CONNECTION_TIMEOUT:
                 logger.error(ErrorMessages.CONNECTION_TIMEOUTED.format(BittrexParameters.CONNECTION_TIMEOUT))
-                self.invokes.append({'invoke': invoke, 'ticker': payload[0][0]})
+                self.invokes.append({'invoke': invoke, 'ticker': identify_payload(payload)})
                 for event in self.control_queue.queue:
-                    self.invokes.append({'invoke': event.invoke, 'ticker': event.payload[0][0]})
+                    self.invokes.append({'invoke': event.invoke, 'ticker': identify_payload(event.payload)})
                 clear_queue(self.control_queue)
                 self.connection.conn.force_close()
                 self.control_queue.put(ReconnectEvent(None))
@@ -192,7 +192,8 @@ class BittrexSocket(WebSocket):
                     logger.info('Successfully subscribed to [{}] for [{}].'.format(invoke, ticker))
             elif invoke == BittrexMethods.GET_AUTH_CONTENT:
                 # The reconnection procedures puts the key in a tuple and it fails, hence the little quick fix.
-                key = payload[0][0] if type(payload[0]) == list else payload[0]
+                key = identify_payload(payload)
+                # key = payload[0][0] if type(payload[0]) == list else payload[0]
                 self.connection.corehub.server.invoke(invoke, key)
                 self.invokes.append({'invoke': invoke, 'ticker': key})
                 logger.info('Retrieving authentication challenge.')

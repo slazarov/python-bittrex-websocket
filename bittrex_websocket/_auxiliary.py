@@ -47,6 +47,11 @@ def clear_queue(q):
     q.mutex.release()
 
 
+def identify_payload(payload):
+    key = payload[0][0] if type(payload[0]) == list else payload[0]
+    return key
+
+
 class BittrexConnection(object):
     def __init__(self, conn, hub):
         self.conn = conn

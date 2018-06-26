@@ -63,3 +63,4 @@ class InfoMessages(Constant):
 class OtherConstants(Constant):
     CF_SESSION_TYPE = '<class \'cfscrape.CloudflareScraper\'>'
     SOCKET_CONNECTION_THREAD = 'SocketConnectionThread'
+    SIGNALR_LISTENER_THREAD = 'SignalRListenerThread'

@@ -10,7 +10,7 @@ from ._logger import add_stream_logger, remove_stream_logger
 from threading import Thread
 from ._queue_events import *
 from .constants import EventTypes, BittrexParameters, BittrexMethods, ErrorMessages, InfoMessages, OtherConstants
-from ._auxiliary import process_message, create_signature, clear_queue, BittrexConnection
+from ._auxiliary import process_message, create_signature, clear_queue, identify_payload, BittrexConnection
 from ._abc import WebSocket
 
 try:
@@ -109,7 +109,7 @@ class BittrexSocket(WebSocket):
     def _handle_reconnect(self, error_message):
         if error_message is not None:
             logger.error('{}.'.format(error_message))
-        logger.debug('Initiating reconnection procedure')
+        logger.debug('Initiating reconnection procedure.')
         for i, thread in enumerate(self.threads):
             if thread.name == OtherConstants.SOCKET_CONNECTION_THREAD:
                 thread.join()
@@ -150,13 +150,13 @@ class BittrexSocket(WebSocket):
             logger.info('Establishing connection to Bittrex through {}.'.format(self.url))
         try:
             self.connection.conn.start()
+        except TimeoutError as e:
+            self.control_queue.put(ReconnectEvent(_get_err_msg(e)))
         except WebSocketConnectionClosedByUser:
             logger.info(InfoMessages.SUCCESSFUL_DISCONNECT)
         except WebSocketConnectionClosedException as e:
             self.control_queue.put(ReconnectEvent(_get_err_msg(e)))
         except TimeoutErrorUrlLib as e:
-            self.control_queue.put(ReconnectEvent(_get_err_msg(e)))
-        except TimeoutError as e:
             self.control_queue.put(ReconnectEvent(_get_err_msg(e)))
         except ConnectionError:
             pass
@@ -177,10 +177,11 @@ class BittrexSocket(WebSocket):
             i += 1
             if i == BittrexParameters.CONNECTION_TIMEOUT:
                 logger.error(ErrorMessages.CONNECTION_TIMEOUTED.format(BittrexParameters.CONNECTION_TIMEOUT))
-                self.invokes.append({'invoke': invoke, 'ticker': payload[0][0]})
+                self.invokes.append({'invoke': invoke, 'ticker': identify_payload(payload)})
                 for event in self.control_queue.queue:
-                    self.invokes.append({'invoke': event.invoke, 'ticker': event.payload[0][0]})
+                    self.invokes.append({'invoke': event.invoke, 'ticker': identify_payload(event.payload)})
                 clear_queue(self.control_queue)
+                self.connection.conn.force_close()
                 self.control_queue.put(ReconnectEvent(None))
                 return
         else:
@@ -191,12 +192,24 @@ class BittrexSocket(WebSocket):
                     logger.info('Successfully subscribed to [{}] for [{}].'.format(invoke, ticker))
             elif invoke == BittrexMethods.GET_AUTH_CONTENT:
                 # The reconnection procedures puts the key in a tuple and it fails, hence the little quick fix.
-                key = payload[0][0] if type(payload[0]) == list else payload[0]
+                key = identify_payload(payload)
+                # key = payload[0][0] if type(payload[0]) == list else payload[0]
                 self.connection.corehub.server.invoke(invoke, key)
                 self.invokes.append({'invoke': invoke, 'ticker': key})
                 logger.info('Retrieving authentication challenge.')
             elif invoke == BittrexMethods.AUTHENTICATE:
-                self.connection.corehub.server.invoke(invoke, payload[0], payload[1])
+                key = payload[0]
+                challenge = payload[1]
+                if type(key) is not str:
+                    logger.error('API key is not transferred. Private authentication will fail.'
+                                 '\nAPI key type is {}'
+                                 '\nReport to https://github.com/slazarov/python-bittrex-websocket.'.format(type(key)))
+                if type(challenge) is not str:
+                    logger.error('Challenge is not transferred. Private authentication will fail.'
+                                 '\nChallenge type is {}'
+                                 '\nReport to https://github.com/slazarov/python-bittrex-websocket.'.format(
+                        type(challenge)))
+                self.connection.corehub.server.invoke(invoke, key, challenge)
                 logger.info('Challenge retrieved. Sending authentication. Awaiting messages...')
                 # No need to append invoke list, because AUTHENTICATE is called from successful GET_AUTH_CONTENT.
             else:
@@ -288,6 +301,8 @@ class BittrexSocket(WebSocket):
                 msg = process_message(kwargs['R'])
                 if msg is not None:
                     msg['invoke_type'] = invoke
+                    # Assign ticker name before Bittrex fixes that payload
+                    msg['ticker'] = self.invokes[int(kwargs['I'])]['ticker']
                     self._on_public_callback.on_change(msg)
 
     # ======================

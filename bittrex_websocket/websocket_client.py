@@ -185,15 +185,11 @@ class BittrexSocket(WebSocket):
                 self.control_queue.put(ReconnectEvent(None))
                 return
         else:
-            if invoke in [BittrexMethods.SUBSCRIBE_TO_EXCHANGE_DELTAS, BittrexMethods.QUERY_EXCHANGE_STATE]:
-                for ticker in payload[0]:
-                    self.invokes.append({'invoke': invoke, 'ticker': ticker})
-                    self.connection.corehub.server.invoke(invoke, ticker)
-                    logger.info('Successfully subscribed to [{}] for [{}].'.format(invoke, ticker))
+            if self._handle_subscribe_for_ticker(invoke, payload):
+                return True
             elif invoke == BittrexMethods.GET_AUTH_CONTENT:
                 # The reconnection procedures puts the key in a tuple and it fails, hence the little quick fix.
                 key = identify_payload(payload)
-                # key = payload[0][0] if type(payload[0]) == list else payload[0]
                 self.connection.corehub.server.invoke(invoke, key)
                 self.invokes.append({'invoke': invoke, 'ticker': key})
                 logger.info('Retrieving authentication challenge.')
@@ -216,6 +212,15 @@ class BittrexSocket(WebSocket):
                 self.invokes.append({'invoke': invoke, 'ticker': None})
                 self.connection.corehub.server.invoke(invoke)
                 logger.info('Successfully invoked [{}].'.format(invoke))
+
+    def _handle_subscribe_for_ticker(self, invoke, payload):
+        if invoke in [BittrexMethods.SUBSCRIBE_TO_EXCHANGE_DELTAS, BittrexMethods.QUERY_EXCHANGE_STATE]:
+            for ticker in payload[0]:
+                self.invokes.append({'invoke': invoke, 'ticker': ticker})
+                self.connection.corehub.server.invoke(invoke, ticker)
+                logger.info('Successfully subscribed to [{}] for [{}].'.format(invoke, ticker))
+            return True
+        return False
 
     # ==============
     # Public Methods

@@ -16,7 +16,7 @@
     :target: https://pypi.python.org/pypi/bittrex-websocket
 
 .. |logo| image:: /resources/py_btrx.svg
-   :width: 60px
+    :width: 60px
 
 What is ``bittrex-websocket``?
 --------------------------
@@ -143,7 +143,6 @@ Order book syncing
             print(book[u'S'][0])
         else:
             pass
-
 
     if __name__ == "__main__":
         main()

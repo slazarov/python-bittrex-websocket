@@ -122,7 +122,6 @@ Order book syncing
     from time import sleep
     from bittrex_websocket import OrderBook
 
-
     def main():
         class MySocket(OrderBook):
             def on_ping(self, msg):

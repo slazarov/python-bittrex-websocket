@@ -17,6 +17,8 @@ class EventTypes(Constant):
     SUBSCRIBE = 'SUBSCRIBE'
     CLOSE = 'CLOSE'
     RECONNECT = 'RECONNECT'
+    CONFIRM_OB = 'CONFIRM_OB'
+    SYNC_OB = 'SYNC_OB'
 
 
 class BittrexParameters(Constant):

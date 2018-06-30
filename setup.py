@@ -12,7 +12,7 @@ install_requires = \
 
 setup(
     name='bittrex_websocket',
-    version='1.0.6',
+    version='1.0.6.2',
     author='Stanislav Lazarov',
     author_email='s.a.lazarov@gmail.com',
     license='MIT',

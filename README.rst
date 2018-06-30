@@ -112,11 +112,9 @@ Order book syncing
 .. code:: python
 
     #!/usr/bin/python
-    # -*- coding: utf-8 -*-
-
     # /examples/order_book.py
-    # Stanislav Lazarov
 
+    # Sample script showing how order book syncing works.
 
     from __future__ import print_function
     from time import sleep

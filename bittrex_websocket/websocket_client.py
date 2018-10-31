@@ -158,6 +158,8 @@ class BittrexSocket(WebSocket):
             self.control_queue.put(ReconnectEvent(_get_err_msg(e)))
         except TimeoutErrorUrlLib as e:
             self.control_queue.put(ReconnectEvent(_get_err_msg(e)))
+        except WebSocketTimeoutException as e:
+            self.control_queue.put(ReconnectEvent(_get_err_msg(e)))
         except ConnectionError:
             pass
             # Commenting it for the time being. It should be handled in _handle_subscribe.

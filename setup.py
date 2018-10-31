@@ -6,7 +6,7 @@ install_requires = \
     [
         'requests[security]==2.20.0',
         'Events==0.3',
-        'websocket-client>=0.47.0',
+        'websocket-client>=0.53.0',
         'signalr-client-threads'
     ]
 
